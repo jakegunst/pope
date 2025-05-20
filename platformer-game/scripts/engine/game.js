@@ -1,4 +1,4 @@
-// Updated game.js to fix bouncer placement and make them less bouncy
+// Updated game.js with integrated enemy system
 import * as Utils from './utils.js';
 import { keys } from './input.js';
 
@@ -6,6 +6,10 @@ import { keys } from './input.js';
 import Player from '../objects/player.js';
 import Platform from '../objects/platform.js';
 import Bouncer from '../objects/bouncer.js';
+import EnemyManager from '../objects/EnemyManager.js';
+
+// Import demo level
+import demoLevel from '../levels/demo-level.js';
 
 // Game constants
 const CANVAS_WIDTH = 800;
@@ -22,8 +26,13 @@ let lives = 3;
 // Game objects
 let player;
 let platforms = [];
-let enemies = [];
 let bouncers = []; // Array for bouncers
+let enemyManager; // Enemy manager instance
+let camera = { x: 0, y: 0, width: CANVAS_WIDTH, height: CANVAS_HEIGHT }; // Camera for scrolling
+
+// Current level
+let currentLevel = null;
+let useCustomLevel = false; // Set to true to use the demo level
 
 // Initialize the game
 function init() {
@@ -43,6 +52,9 @@ function init() {
     
     // Hide game UI initially
     document.getElementById('game-ui').style.display = 'none';
+    
+    // Initialize enemy manager
+    enemyManager = new EnemyManager();
 }
 
 // Set up keyboard input listeners
@@ -74,7 +86,73 @@ function startGame() {
     document.getElementById('game-menu').style.display = 'none';
     document.getElementById('game-ui').style.display = 'block';
     
-    // Initialize game objects
+    if (useCustomLevel) {
+        // Load demo level
+        loadLevel(demoLevel);
+    } else {
+        // Load default level
+        loadDefaultLevel();
+    }
+    
+    // Start game loop
+    gameRunning = true;
+    requestAnimationFrame(gameLoop);
+}
+
+// Load a level from data
+function loadLevel(levelData) {
+    currentLevel = levelData;
+    
+    // Initialize player at level's starting position
+    const startPos = levelData.playerStart || { x: 100, y: 300 };
+    player = new Player(startPos.x, startPos.y);
+    
+    // Load platforms
+    platforms = [];
+    if (levelData.platforms) {
+        levelData.platforms.forEach(platformData => {
+            // Create platform based on type
+            const platform = new Platform(
+                platformData.x, 
+                platformData.y, 
+                platformData.width, 
+                platformData.height, 
+                platformData.type || 'normal', 
+                platformData
+            );
+            platforms.push(platform);
+        });
+    }
+    
+    // Load bouncers
+    bouncers = [];
+    if (levelData.bouncers) {
+        levelData.bouncers.forEach(bouncerData => {
+            const bouncer = new Bouncer(
+                bouncerData.x,
+                bouncerData.y,
+                bouncerData.width,
+                bouncerData.height,
+                bouncerData.bounceForce || -15
+            );
+            bouncers.push(bouncer);
+        });
+    }
+    
+    // Load enemies
+    enemyManager.clearEnemies();
+    if (levelData.enemies) {
+        enemyManager.createEnemiesFromLevel(levelData);
+    }
+    
+    // Reset camera
+    camera.x = 0;
+    camera.y = 0;
+}
+
+// Create the default level
+function loadDefaultLevel() {
+    // Initialize player
     player = new Player(100, 300);
     
     // Create platforms for the level
@@ -149,11 +227,26 @@ function startGame() {
         new Bouncer(320, 230, 60, 15, -12), // Upper platform, smallest bounce
     ];
     
-    enemies = [];
+    // Add some test enemies
+    enemyManager.clearEnemies();
+    enemyManager.createEnemy('walker', 200, 400);
+    enemyManager.createEnemy('jumper', 400, 400);
+    enemyManager.createEnemy('flyer', 300, 200);
+    enemyManager.createEnemy('flipper', 600, 400);
+}
+
+// Update camera position to follow player
+function updateCamera() {
+    // Only update camera for custom levels that are wider than the screen
+    if (!currentLevel || !currentLevel.width || currentLevel.width <= CANVAS_WIDTH) {
+        return;
+    }
     
-    // Start game loop
-    gameRunning = true;
-    requestAnimationFrame(gameLoop);
+    // Center camera on player
+    const targetX = player.x - CANVAS_WIDTH / 2;
+    
+    // Clamp camera to level bounds
+    camera.x = Math.max(0, Math.min(targetX, currentLevel.width - CANVAS_WIDTH));
 }
 
 // Main game loop
@@ -167,6 +260,15 @@ function gameLoop() {
     // Basic blue background
     ctx.fillStyle = '#87CEEB';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    
+    // Update camera to follow player
+    updateCamera();
+    
+    // Save context for camera transformation
+    ctx.save();
+    
+    // Apply camera offset
+    ctx.translate(-camera.x, -camera.y);
     
     // Update all platforms (specifically moving ones)
     platforms.forEach(platform => {
@@ -182,13 +284,29 @@ function gameLoop() {
     
     // Draw platforms
     platforms.forEach(platform => {
-        platform.draw(ctx);
+        // Only draw platforms if they're visible in the camera view
+        if (platform.x + platform.width > camera.x && 
+            platform.x < camera.x + CANVAS_WIDTH &&
+            platform.y + platform.height > camera.y &&
+            platform.y < camera.y + CANVAS_HEIGHT) {
+            platform.draw(ctx);
+        }
     });
     
     // Draw bouncers
     bouncers.forEach(bouncer => {
-        bouncer.draw(ctx);
+        // Only draw bouncers if they're visible in the camera view
+        if (bouncer.x + bouncer.width > camera.x && 
+            bouncer.x < camera.x + CANVAS_WIDTH &&
+            bouncer.y + bouncer.height > camera.y &&
+            bouncer.y < camera.y + CANVAS_HEIGHT) {
+            bouncer.draw(ctx);
+        }
     });
+    
+    // Update and draw enemies
+    enemyManager.update(platforms, player);
+    enemyManager.draw(ctx, camera);
     
     // Update player with controls
     if (player) {
@@ -210,7 +328,10 @@ function gameLoop() {
         player.draw(ctx);
     }
     
-    // Draw UI
+    // Restore context after camera transformation
+    ctx.restore();
+    
+    // Draw UI (not affected by camera)
     updateUI();
     
     // Continue loop if game is running
@@ -227,6 +348,14 @@ function updateUI() {
     // Update lives display
     document.getElementById('lives').textContent = `Lives: ${lives}`;
     
+    // Display enemy count
+    document.getElementById('enemies').textContent = `Enemies: ${enemyManager.getEnemyCount()}`;
+    
+    // Level name if using custom level
+    if (currentLevel && currentLevel.name) {
+        document.getElementById('level-name').textContent = currentLevel.name;
+    }
+    
     // Debug info - shows useful stats at bottom of screen
     if (player) {
         const debugInfo = `Position: ${Math.round(player.x)}, ${Math.round(player.y)} | Velocity: ${player.velocityX.toFixed(2)}, ${player.velocityY.toFixed(2)} | Grounded: ${player.isGrounded} | Platform: ${player.activePlatform ? player.activePlatform.type : 'none'}${player.wasOnMovingPlatform ? ' (moving)' : ''}`;
@@ -237,6 +366,19 @@ function updateUI() {
         ctx.fillText(debugInfo, 15, CANVAS_HEIGHT - 15);
     }
 }
+
+// Key handler to toggle between levels
+window.addEventListener('keydown', (e) => {
+    // Toggle between default and demo level with 'L' key
+    if (e.key === 'l' && gameRunning) {
+        useCustomLevel = !useCustomLevel;
+        if (useCustomLevel) {
+            loadLevel(demoLevel);
+        } else {
+            loadDefaultLevel();
+        }
+    }
+});
 
 // Initialize the game when the page loads
 window.addEventListener('load', init);
