@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Platformer Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { background-color: #333; color: white; font-family: Arial; }
+        .game-container { margin: 20px auto; text-align: center; }
+        #game-menu h1 { color: yellow; }
+        button { padding: 10px 20px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="game-ui">
+            <div id="score">Score: 0</div>
+            <div id="lives">Lives: 3</div>
+        </div>
+        <div id="game-menu">
+            <h1>Browser Platformer</h1>
+            <button id="start-button">Start Game</button>
+            <button id="instructions-button">Instructions</button>
+        </div>
+    </div>
+    
+    <!-- Main game script using ES modules -->
+    <script type="module" src="./scripts/engine/game.js"></script>
+</body>
+</html>
