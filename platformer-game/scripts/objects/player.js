@@ -63,31 +63,13 @@ class Player {
     this.maxWallJumpCooldown = 10; // Frames of cooldown
   }
 
-  update(platforms) {
+  update(platforms, bouncers = []) {
     // Apply gravity
     this.velocityY += this.gravity;
     
     // Apply friction when on ground
     if (this.isGrounded) {
       this.velocityX *= this.friction;
-    }
-    
-    // After all platform collisions are handled, check bouncer collisions
-    const currentTime = performance.now();
-    for (const bouncer of bouncers) {
-      // First check if collision is possible without modifying the player
-      if (bouncer.checkCollision(this)) {
-        // Then check if we can bounce (cooldown check)
-        if (bouncer.bounce(this, currentTime)) {
-          // Only apply bounce effects if both checks passed
-          this.velocityY = bouncer.bounceForce;
-          this.canDoubleJump = true;
-          this.isJumping = true;
-          this.isGrounded = false;
-          // Create trail effect
-          this.createBounceTrailEffect();
-        }
-      }
     } else {
       // Less friction in the air for better control
       this.velocityX *= 0.95;
@@ -156,7 +138,7 @@ class Player {
     this.hangingAmount = 0;
     
     // Check for collisions with platforms
-    this.checkCollisions(platforms);
+    this.checkCollisions(platforms, bouncers);
     
     // Reset small velocities to zero
     if (Math.abs(this.velocityX) < 0.1) {
@@ -363,11 +345,6 @@ class Player {
   }
 
   checkCollisions(platforms, bouncers = []) {
-    // Get the current time for bouncer cooldown checks
-    const currentTime = performance.now();
-    
-    // IMPORTANT FIX: Check for platform collisions FIRST
-    
     // Store the previous position for better collision resolution
     const prevX = this.x;
     const prevY = this.y;
@@ -774,6 +751,24 @@ class Player {
       this.coyoteTimeCounter--;
       if (!this.isGrounded) {
         this.isGrounded = true; // Still considered grounded during coyote time
+      }
+    }
+    
+    // After all platform collisions are handled, check bouncer collisions
+    const currentTime = performance.now();
+    for (const bouncer of bouncers) {
+      // First check if collision is possible without modifying the player
+      if (bouncer.checkCollision(this)) {
+        // Then check if we can bounce (cooldown check)
+        if (bouncer.bounce(this, currentTime)) {
+          // Only apply bounce effects if both checks passed
+          this.velocityY = bouncer.bounceForce;
+          this.canDoubleJump = true;
+          this.isJumping = true;
+          this.isGrounded = false;
+          // Create trail effect
+          this.createBounceTrailEffect();
+        }
       }
     }
   }
