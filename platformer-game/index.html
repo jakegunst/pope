@@ -1,4 +1,3 @@
-<!-- Update to your index.html file -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,94 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Platformer Game</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #222;
-            color: white;
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        #game-container {
-            position: relative;
-            width: 800px;
-            height: 600px;
-            border: 4px solid #444;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-        }
-
-        #game-canvas {
-            background-color: #333;
-        }
-
-        #game-menu {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-
-        #game-title {
-            font-size: 48px;
-            margin-bottom: 30px;
-            color: 
-#f8f8f8;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        }
-
-        #start-button {
-            padding: 12px 30px;
-            font-size: 24px;
-            background-color: 
-#4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        #start-button:hover {
-            background-color: 
-#45a049;
-        }
-
-        #game-ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            display: flex;
-            gap: 20px;
-            font-size: 18px;
-            z-index: 5;
-        }
-
-        #score, #lives, #enemies, #level-name {
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 5px 10px;
-            border-radius: 5px;
-        }
-
-        .controls-info {
-            position: absolute;
-            bottom: 50px;
-            text-align: center;
-            width: 100%;
-            font-size: 14px;
-            color: #ccc;
-        }
+        /* Your existing styles */
     </style>
 </head>
 <body>
@@ -115,34 +27,38 @@
             <div id="level-name"></div>
         </div>
     </div>
-<script type="module" src="./scripts/engine/game.js"></script>
+
+    <!-- Change to relative path -->
+    <script type="module" src="./scripts/engine/game.js"></script>
+    
+    <!-- Your test scripts -->
     <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM loaded");
-    const startButton = document.getElementById('start-button');
-    console.log("Start button:", startButton);
-    if (startButton) {
-      startButton.addEventListener('click', function() {
-        console.log("Start button clicked");
-        // Here you could manually trigger your startGame function
-      });
-    }
-  });
-</script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM loaded");
+            const startButton = document.getElementById('start-button');
+            console.log("Start button:", startButton);
+            if (startButton) {
+                startButton.addEventListener('click', function() {
+                    console.log("Start button clicked");
+                    // Here you could manually trigger your startGame function
+                });
+            }
+        });
+    </script>
     <script>
-  console.log("HTML loaded successfully");
-  window.addEventListener('load', function() {
-    document.getElementById('start-button').addEventListener('click', function() {
-      console.log("Start button clicked!");
-      alert("Button works!");
-    });
-  });
-</script>
+        console.log("HTML loaded successfully");
+        window.addEventListener('load', function() {
+            document.getElementById('start-button').addEventListener('click', function() {
+                console.log("Start button clicked!");
+                alert("Button works!");
+            });
+        });
+    </script>
     <script>
-  console.log("Current page URL:", window.location.href);
-  const baseElement = document.createElement('base');
-  baseElement.href = window.location.href;
-  console.log("Base URL:", baseElement.href);
-</script>
+        console.log("Current page URL:", window.location.href);
+        const baseElement = document.createElement('base');
+        baseElement.href = window.location.href;
+        console.log("Base URL:", baseElement.href);
+    </script>
 </body>
 </html>
