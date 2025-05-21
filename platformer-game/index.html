@@ -115,8 +115,7 @@
             <div id="level-name"></div>
         </div>
     </div>
-
-    <script type="module" src="/pope/platformer-game/scripts/engine/game.js"></script>
+<script type="module" src="./scripts/engine/game.js"></script>
     <script>
   document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded");
@@ -129,6 +128,21 @@
       });
     }
   });
+</script>
+    <script>
+  console.log("HTML loaded successfully");
+  window.addEventListener('load', function() {
+    document.getElementById('start-button').addEventListener('click', function() {
+      console.log("Start button clicked!");
+      alert("Button works!");
+    });
+  });
+</script>
+    <script>
+  console.log("Current page URL:", window.location.href);
+  const baseElement = document.createElement('base');
+  baseElement.href = window.location.href;
+  console.log("Base URL:", baseElement.href);
 </script>
 </body>
 </html>
