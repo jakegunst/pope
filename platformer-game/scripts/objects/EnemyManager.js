@@ -65,20 +65,38 @@ class EnemyManager {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
       
-      // Update enemy
-      enemy.update(delta, platforms, player);
-      
-      // Remove inactive enemies
-      if (!enemy.isActive) {
-        this.enemies.splice(i, 1);
+      try {
+        // Update enemy - this should happen in world space, not camera space
+        enemy.update(delta, platforms, player);
+        
+        // Remove inactive enemies
+        if (!enemy.isActive) {
+          this.enemies.splice(i, 1);
+        }
+      } catch (error) {
+        console.error('Error updating enemy:', error);
       }
     }
   }
 
-  // Draw all enemies
+  // Draw all enemies - camera is only used for culling, not position translation
+  // The camera translation is already applied in game.js
   draw(ctx, camera) {
+    // Only draw enemies that are in the camera view
     for (const enemy of this.enemies) {
-      enemy.draw(ctx, camera);
+      if (enemy.x + enemy.width < camera.x || 
+          enemy.x > camera.x + camera.width ||
+          enemy.y + enemy.height < camera.y || 
+          enemy.y > camera.y + camera.height) {
+        continue; // Skip if off screen
+      }
+      
+      try {
+        // Camera translation is handled in game.js, so we just need to draw
+        enemy.draw(ctx, camera);
+      } catch (error) {
+        console.error('Error drawing enemy:', error);
+      }
     }
   }
 
