@@ -24,6 +24,14 @@ class Player {
     this.canDoubleJump = false; // Initially false, set to true after first jump
     this.jumpKeyReleased = true; // Track if jump key has been released
     
+    // Health and damage properties
+    this.health = 3;  // Player health (same as lives)
+    this.maxHealth = 3;
+    this.invulnerableTimer = 0;  // Invulnerability time after getting hurt
+    this.maxInvulnerableTime = 1000;  // 1 second of invulnerability
+    this.knockbackForce = 8;  // Horizontal knockback when hurt
+    this.isDamaged = false;  // Visual indicator
+    
     // Flip animation properties
     this.isFlipping = false;
     this.flipAngle = 0;
@@ -73,6 +81,16 @@ class Player {
     } else {
       // Less friction in the air for better control
       this.velocityX *= 0.95;
+    }
+    
+    // Update invulnerability timer
+    if (this.invulnerableTimer > 0) {
+      this.invulnerableTimer -= 16; // Assuming ~60fps (16ms per frame)
+      
+      // Clear damaged visual state after a short time
+      if (this.invulnerableTimer < this.maxInvulnerableTime - 200) {
+        this.isDamaged = false;
+      }
     }
     
     // Update wall jump cooldown
@@ -233,6 +251,105 @@ class Player {
       
       // Create particles for effect
       this.createDoubleJumpParticles();
+    }
+  }
+  
+  /**
+   * Method to handle player getting hurt
+   * @param {number} damage - Amount of damage to apply
+   */
+  getHurt(damage) {
+    // Only take damage if not currently invulnerable
+    if (this.invulnerableTimer <= 0) {
+      // Apply damage
+      this.health -= damage;
+      
+      // Set invulnerability timer
+      this.invulnerableTimer = this.maxInvulnerableTime;
+      
+      // Apply knockback in opposite direction from facing
+      this.velocityX = this.knockbackForce * -this.direction;
+      this.velocityY = -5; // Small upward bounce
+      
+      // Set damaged state for visual effect
+      this.isDamaged = true;
+      
+      // Create hurt particles
+      this.createHurtParticles();
+      
+      // Check if player died
+      if (this.health <= 0) {
+        this.die();
+      }
+      
+      return true; // Successfully hurt
+    }
+    
+    return false; // Not hurt (invulnerable)
+  }
+
+  /**
+   * Method to handle player death
+   */
+  die() {
+    console.log("Player died!");
+    // Reset player position
+    this.x = 100;
+    this.y = 300;
+    
+    // Reset velocity
+    this.velocityX = 0;
+    this.velocityY = 0;
+    
+    // Reset health (or decrement lives if you track those separately)
+    this.health = this.maxHealth;
+    
+    // Create death effect
+    this.createDeathParticles();
+  }
+
+  /**
+   * Create particles for hurt effect
+   */
+  createHurtParticles() {
+    // Create a burst of red particles
+    const particleCount = 10;
+    
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 / particleCount) * i;
+      
+      this.particles.push({
+        x: this.x + this.width / 2,
+        y: this.y + this.height / 2,
+        vx: Math.cos(angle) * 2,
+        vy: Math.sin(angle) * 2,
+        color: '#FF5555', // Red color
+        alpha: 1,
+        size: Math.random() * 3 + 2
+      });
+    }
+  }
+
+  /**
+   * Create particles for death effect
+   */
+  createDeathParticles() {
+    // Create a bigger explosion of particles
+    const particleCount = 30;
+    
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 / particleCount) * i;
+      const speed = 2 + Math.random() * 3;
+      
+      this.particles.push({
+        x: this.x + this.width / 2,
+        y: this.y + this.height / 2,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        color: i % 3 === 0 ? '#FF5555' : (i % 3 === 1 ? '#FFFFFF' : '#5555FF'), // Red, white, blue
+        alpha: 1,
+        size: Math.random() * 4 + 3
+      });
     }
   }
   
@@ -777,6 +894,13 @@ class Player {
     // Save the canvas state before transformations
     ctx.save();
     
+    // Flashing effect during invulnerability
+    if (this.invulnerableTimer > 0) {
+      if (Math.floor(this.invulnerableTimer / 100) % 2 === 0) {
+        ctx.globalAlpha = 0.5; // Blink by changing opacity
+      }
+    }
+    
     if (this.isFlipping) {
       // Calculate the center of the player for rotation
       const centerX = this.x + this.width / 2;
@@ -791,8 +915,8 @@ class Player {
       // Translate back to draw the player at the right position
       ctx.translate(-this.width / 2, -this.height / 2);
       
-      // Draw the flipping player
-      ctx.fillStyle = 'blue';
+      // Draw the flipping player - change color if damaged
+      ctx.fillStyle = this.isDamaged ? 'red' : 'blue';
       ctx.fillRect(0, 0, this.width, this.height);
       
       // Draw direction indicator (eye)
@@ -803,8 +927,16 @@ class Player {
         ctx.fillRect(5, 10, 5, 5);
       }
     } else {
-      // Draw normal player
-      ctx.fillStyle = this.isTouchingWall && !this.isGrounded ? 'purple' : 'blue'; // Purple when wall sliding
+      // Draw normal player - change color based on state
+      let playerColor = 'blue';
+      
+      if (this.isDamaged) {
+        playerColor = 'red';
+      } else if (this.isTouchingWall && !this.isGrounded) {
+        playerColor = 'purple'; // Purple when wall sliding
+      }
+      
+      ctx.fillStyle = playerColor;
       ctx.fillRect(this.x, this.y, this.width, this.height);
       
       // Draw direction indicator (eye)
@@ -938,6 +1070,18 @@ class Player {
         ctx.fillText(`Cooldown: ${this.wallJumpCooldown}`, this.x, this.y - 15);
       }
     }
+    
+    // Draw health/invulnerability info (optional)
+    if (this.invulnerableTimer > 0) {
+      ctx.font = '10px Arial';
+      ctx.fillStyle = 'red';
+      ctx.fillText(`Invulnerable: ${Math.ceil(this.invulnerableTimer / 100) / 10}s`, this.x, this.y - 25);
+    }
+    
+    // Draw health indicator
+    ctx.font = '10px Arial';
+    ctx.fillStyle = 'white';
+    ctx.fillText(`Health: ${this.health}/${this.maxHealth}`, this.x, this.y - 35);
   }
 }
 
