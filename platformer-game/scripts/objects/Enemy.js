@@ -358,6 +358,23 @@ export class WalkerEnemy extends Enemy {
   }
 }
 
+// Add this class to your Enemy.js file
+export class WalkingShooterEnemy extends Enemy {
+  constructor(x, y) {
+    super(x, y, 36, 36);
+    this.velocityX = 1.5;
+    this.walkTimer = 0;
+    this.color = '#E91E63'; // Pink
+    this.projectiles = [];
+    this.shootTimer = 0;
+    this.shootInterval = 2000;
+    this.alertLevel = 0;
+  }
+  
+  // You can add more methods as needed, similar to both WalkerEnemy and ShooterEnemy
+  // For now, this would be enough to make the import work
+}
+
 // Enemy that jumps up periodically
 export class JumperEnemy extends Enemy {
   constructor(x, y) {
