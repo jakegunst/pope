@@ -26,7 +26,14 @@ let player;
 let platforms = [];
 let bouncers = []; // Array for bouncers
 let enemyManager; // Enemy manager instance
-let camera = { x: 0, y: 0, width: CANVAS_WIDTH, height: CANVAS_HEIGHT }; // Camera for scrolling
+let camera = { 
+    x: 0, 
+    y: 0, 
+    width: CANVAS_WIDTH, 
+    height: CANVAS_HEIGHT,
+    prevX: 0, // Keep track of previous position for delta calculations
+    prevY: 0
+}; // Camera for scrolling
 
 // Current level
 let currentLevel = null;
@@ -146,6 +153,8 @@ function loadLevel(levelData) {
     // Reset camera
     camera.x = 0;
     camera.y = 0;
+    camera.prevX = 0;
+    camera.prevY = 0;
 }
 
 // Create the default level
@@ -231,10 +240,20 @@ function loadDefaultLevel() {
     enemyManager.createEnemy('jumper', 400, 400);
     enemyManager.createEnemy('flyer', 300, 200);
     enemyManager.createEnemy('flipper', 600, 400);
+    
+    // Reset camera
+    camera.x = 0;
+    camera.y = 0;
+    camera.prevX = 0;
+    camera.prevY = 0;
 }
 
 // Update camera position to follow player
 function updateCamera() {
+    // Store previous camera position to calculate delta
+    camera.prevX = camera.x;
+    camera.prevY = camera.y;
+    
     // Only update camera for custom levels that are wider than the screen
     if (!currentLevel || !currentLevel.width || currentLevel.width <= CANVAS_WIDTH) {
         return;
@@ -262,12 +281,6 @@ function gameLoop() {
     // Update camera to follow player
     updateCamera();
     
-    // Save context for camera transformation
-    ctx.save();
-    
-    // Apply camera offset
-    ctx.translate(-camera.x, -camera.y);
-    
     // Update all platforms (specifically moving ones)
     platforms.forEach(platform => {
         if (platform.isMoving) {
@@ -279,6 +292,32 @@ function gameLoop() {
     bouncers.forEach(bouncer => {
         bouncer.update(currentTime);
     });
+    
+    // Update enemy logic - these updates happen in world space, before any camera translation
+    enemyManager.update(platforms, player);
+    
+    // Update player with controls
+    if (player) {
+        // Handle player movement input
+        if (keys['ArrowLeft'] || keys['a']) {
+            player.moveLeft();
+        }
+        if (keys['ArrowRight'] || keys['d']) {
+            player.moveRight();
+        }
+        
+        // Update player physics
+        player.update(platforms);
+        
+        // Check bouncer collisions - pass current time to help debugging
+        player.checkCollisions(platforms, bouncers);
+    }
+    
+    // DRAWING - Apply camera transformation for all drawing operations
+    ctx.save();
+    
+    // Apply camera offset
+    ctx.translate(-camera.x, -camera.y);
     
     // Draw platforms
     platforms.forEach(platform => {
@@ -302,27 +341,11 @@ function gameLoop() {
         }
     });
     
-    // Update and draw enemies
-    enemyManager.update(platforms, player);
+    // Draw enemies - This now happens inside the camera transformation context
     enemyManager.draw(ctx, camera);
     
-    // Update player with controls
+    // Draw player
     if (player) {
-        // Handle player movement input
-        if (keys['ArrowLeft'] || keys['a']) {
-            player.moveLeft();
-        }
-        if (keys['ArrowRight'] || keys['d']) {
-            player.moveRight();
-        }
-        
-        // Update player physics
-        player.update(platforms);
-        
-        // Check bouncer collisions - pass current time to help debugging
-        player.checkCollisions(platforms, bouncers);
-        
-        // Draw player
         player.draw(ctx);
     }
     
@@ -344,7 +367,12 @@ function updateUI() {
     document.getElementById('score').textContent = `Score: ${score}`;
     
     // Update lives display
-    document.getElementById('lives').textContent = `Lives: ${lives}`;
+    if (player) {
+        document.getElementById('lives').textContent = `Lives: ${player.health}`;
+        lives = player.health; // Sync lives with player health
+    } else {
+        document.getElementById('lives').textContent = `Lives: ${lives}`;
+    }
     
     // Display enemy count
     document.getElementById('enemies').textContent = `Enemies: ${enemyManager.getEnemyCount()}`;
