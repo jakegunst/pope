@@ -14,6 +14,7 @@ export class Enemy {
     this.hurtTimer = 0;
     this.health = 1;
     this.facingRight = true;
+} // <-- Add this closing brace
   draw(ctx, camera) {
     if (!this.isActive) return;
     
