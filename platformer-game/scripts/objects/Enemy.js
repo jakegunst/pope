@@ -13,592 +13,6 @@ class Enemy {
     this.facingRight = true;
   }
 
-// FastWalkerEnemy.js - A faster version of WalkerEnemy
-class FastWalkerEnemy extends WalkerEnemy {
-  constructor(x, y) {
-    super(x, y);
-    // Make it faster
-    this.velocityX = 3;
-    // Change color
-    this.color = '#42A5F5'; // Blue
-    // Less health to balance speed
-    this.health = 1;
-  }
-
-  update(delta, platforms, player) {
-    super.update(delta, platforms, player);
-    
-    // Additional behavior - jump over small gaps
-    if (this.isGrounded) {
-      const edgeCheckX = this.facingRight ? this.x + this.width + 30 : this.x - 30;
-      let groundAhead = false;
-      
-      for (const platform of platforms) {
-        if (edgeCheckX >= platform.x && edgeCheckX <= platform.x + platform.width &&
-            Math.abs((this.y + this.height) - platform.y) < 5) {
-          groundAhead = true;
-          break;
-        }
-      }
-      
-      // Jump over small gaps
-      if (!groundAhead && Math.random() < 0.2) {
-        this.velocityY = -10;
-        this.isGrounded = false;
-      }
-    }
-    
-    // Create a motion trail effect
-    if (Math.random() < 0.2 && this.isGrounded) {
-      // Placeholder for particle effect
-      // You might want to add a particle system to create dust effects
-    }
-  }
-
-  draw(ctx, camera) {
-    if (!this.isActive) return;
-    
-    // Skip drawing if off-screen
-    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
-        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
-      return;
-    }
-
-    // Draw motion blur effect
-    if (Math.abs(this.velocityX) > 2) {
-      ctx.globalAlpha = 0.3;
-      const blurOffset = this.facingRight ? -5 : 5;
-      ctx.fillStyle = this.color;
-      ctx.fillRect(
-        this.x - camera.x + blurOffset, 
-        this.y - camera.y, 
-        this.width, 
-        this.height
-      );
-      ctx.globalAlpha = 1;
-    }
-
-    // Flashing effect when hurt
-    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
-      ctx.globalAlpha = 0.5;
-    }
-
-    // Draw enemy body
-    ctx.fillStyle = this.color;
-    
-    // Simple "running" animation with more exaggerated motion
-    const walkOffset = Math.sin(this.walkTimer / 60) * 3;
-    ctx.beginPath();
-    ctx.moveTo(this.x - camera.x, this.y - camera.y + this.height);
-    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height);
-    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height - 10 + walkOffset);
-    ctx.lineTo(this.x - camera.x, this.y - camera.y + this.height - 10 - walkOffset);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Draw enemy head - leaned forward when running
-    const leanOffset = this.facingRight ? 3 : -3;
-    ctx.fillRect(
-      this.x - camera.x + 4 + leanOffset, 
-      this.y - camera.y + this.height - 26, 
-      this.width - 8, 
-      16
-    );
-    
-    // Draw streamlined eyes
-    ctx.fillStyle = 'white';
-    const eyeX = this.facingRight ? this.x - camera.x + 20 + leanOffset : this.x - camera.x + 8 + leanOffset;
-    const eyeWidth = this.facingRight ? 6 : 6;
-    ctx.fillRect(eyeX, this.y - camera.y + this.height - 22, eyeWidth, 8);
-    
-    // Reset alpha
-    ctx.globalAlpha = 1;
-  }
-}
-
-// ChaserEnemy.js - Enemy that actively chases the player
-class ChaserEnemy extends Enemy {
-  constructor(x, y) {
-    super(x, y, 30, 30);
-    this.detectionRange = 300;
-    this.chaseSpeed = 2;
-    this.idleSpeed = 0.5;
-    this.color = '#FF5252'; // Red accent
-    this.isChasing = false;
-    this.idleTimer = 0;
-    this.idleDirection = 1;
-    this.alertLevel = 0;
-  }
-
-  update(delta, platforms, player) {
-    const wasGrounded = this.isGrounded;
-    this.isGrounded = false;
-    
-    // Call base update for physics
-    super.update(delta, platforms, player);
-    
-    // Check if we should chase the player
-    if (player) {
-      const dx = player.x - this.x;
-      const dy = player.y - this.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < this.detectionRange) {
-        // Start chasing
-        this.isChasing = true;
-        this.alertLevel = Math.min(1, this.alertLevel + delta * 0.005);
-        
-        // Move toward player if on ground
-        if (this.isGrounded) {
-          this.facingRight = dx > 0;
-          this.velocityX = this.facingRight ? this.chaseSpeed : -this.chaseSpeed;
-          
-          // Jump if player is above and reachable
-          if (dy < -50 && Math.abs(dx) < 100 && Math.random() < 0.03) {
-            this.velocityY = -12;
-          }
-          
-          // Jump if there's a wall in the way
-          const wallCheckX = this.facingRight ? 
-            this.x + this.width + 5 : this.x - 5;
-          
-          for (const platform of platforms) {
-            if (wallCheckX >= platform.x && wallCheckX <= platform.x + platform.width &&
-                this.y + this.height > platform.y && this.y < platform.y + platform.height) {
-              this.velocityY = -12;
-              break;
-            }
-          }
-        }
-      } else {
-        // Stop chasing if player is too far
-        this.isChasing = false;
-        this.alertLevel = Math.max(0, this.alertLevel - delta * 0.002);
-        this.idleMovement(delta);
-      }
-      
-      // Check for player collision
-      this.checkPlayerCollision(player);
-    } else {
-      // No player, just idle
-      this.isChasing = false;
-      this.alertLevel = 0;
-      this.idleMovement(delta);
-    }
-  }
-  
-  idleMovement(delta) {
-    this.idleTimer += delta;
-    
-    // Change direction periodically
-    if (this.idleTimer > 2000) {
-      this.idleDirection = -this.idleDirection;
-      this.facingRight = this.idleDirection > 0;
-      this.idleTimer = 0;
-    }
-    
-    // Move slowly in the current direction
-    this.velocityX = this.idleDirection * this.idleSpeed;
-  }
-
-  draw(ctx, camera) {
-    if (!this.isActive) return;
-    
-    // Skip drawing if off-screen
-    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
-        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
-      return;
-    }
-
-    // Flashing effect when hurt
-    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
-      ctx.globalAlpha = 0.5;
-    }
-    
-    // Draw alert indicator
-    if (this.alertLevel > 0) {
-      ctx.fillStyle = `rgba(255, 0, 0, ${this.alertLevel * 0.5})`;
-      ctx.beginPath();
-      ctx.arc(
-        this.x - camera.x + this.width / 2,
-        this.y - camera.y - 10,
-        8,
-        0, Math.PI * 2
-      );
-      ctx.fill();
-    }
-
-    // Draw enemy body
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(
-      this.x - camera.x + this.width / 2,
-      this.y - camera.y + this.height / 2,
-      this.width / 2,
-      0, Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Draw eyes based on alert level
-    ctx.fillStyle = 'white';
-    const eyeSize = 3 + this.alertLevel * 3;
-    const eyeSpacing = 8;
-    
-    // Left eye
-    ctx.beginPath();
-    ctx.arc(
-      this.x - camera.x + this.width / 2 - eyeSpacing,
-      this.y - camera.y + this.height / 2 - 3,
-      eyeSize,
-      0, Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Right eye
-    ctx.beginPath();
-    ctx.arc(
-      this.x - camera.x + this.width / 2 + eyeSpacing,
-      this.y - camera.y + this.height / 2 - 3,
-      eyeSize,
-      0, Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Draw pupils - look toward player
-    ctx.fillStyle = 'black';
-    const pupilOffset = this.facingRight ? 1 : -1;
-    const pupilSize = eyeSize * 0.6;
-    
-    // Left pupil
-    ctx.beginPath();
-    ctx.arc(
-      this.x - camera.x + this.width / 2 - eyeSpacing + pupilOffset,
-      this.y - camera.y + this.height / 2 - 3,
-      pupilSize,
-      0, Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Right pupil
-    ctx.beginPath();
-    ctx.arc(
-      this.x - camera.x + this.width / 2 + eyeSpacing + pupilOffset,
-      this.y - camera.y + this.height / 2 - 3,
-      pupilSize,
-      0, Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Reset alpha
-    ctx.globalAlpha = 1;
-  }
-}
-
-// RangedAttackEnemy.js - Enemy with a more complex ranged attack pattern
-class RangedAttackEnemy extends Enemy {
-  constructor(x, y) {
-    super(x, y, 40, 40);
-    this.attackTimer = 0;
-    this.attackInterval = 3000;
-    this.projectiles = [];
-    this.color = '#8BC34A'; // Light Green
-    this.alertLevel = 0;
-    this.burstCount = 0;
-    this.burstTotal = 3;
-    this.burstDelay = 200;
-    this.burstTimer = 0;
-    this.isBursting = false;
-    this.health = 2;
-  }
-
-  update(delta, platforms, player) {
-    if (this.hurtTimer > 0) {
-      this.hurtTimer -= delta;
-    }
-    
-    // Face the player
-    if (player) {
-      this.facingRight = player.x > this.x;
-      
-      // Update attack timer
-      if (Math.abs(player.x - this.x) < 400) { // Only attack when player is in range
-        this.attackTimer += delta;
-        
-        // Calculate alert level for charging animation
-        this.alertLevel = Math.min(1, this.attackTimer / this.attackInterval);
-        
-        // Time to start a burst!
-        if (this.attackTimer >= this.attackInterval && !this.isBursting) {
-          this.startBurst(player);
-        }
-        
-        // Update burst if in progress
-        if (this.isBursting) {
-          this.updateBurst(delta, player);
-        }
-      } else {
-        // Reset timer when player is far away
-        this.attackTimer = Math.max(0, this.attackTimer - delta * 0.5);
-        this.alertLevel = Math.min(1, this.attackTimer / this.attackInterval);
-      }
-      
-      // Check player collision
-      this.checkPlayerCollision(player);
-    }
-    
-    // Update projectiles
-    this.updateProjectiles(platforms, player);
-  }
-  
-  startBurst(player) {
-    this.isBursting = true;
-    this.burstCount = 0;
-    this.burstTimer = 0;
-    this.attackTimer = 0;
-  }
-  
-  updateBurst(delta, player) {
-    this.burstTimer += delta;
-    
-    if (this.burstTimer >= this.burstDelay) {
-      this.shootProjectile(player);
-      this.burstCount++;
-      this.burstTimer = 0;
-      
-      if (this.burstCount >= this.burstTotal) {
-        this.isBursting = false;
-      }
-    }
-  }
-  
-  shootProjectile(player) {
-    // Calculate angle to player with spread
-    const centerX = this.x + this.width / 2;
-    const centerY = this.y + this.height / 2;
-    const playerCenterX = player.x + player.width / 2;
-    const playerCenterY = player.y + player.height / 2;
-    
-    const dx = playerCenterX - centerX;
-    const dy = playerCenterY - centerY;
-    const baseAngle = Math.atan2(dy, dx);
-    
-    // Add some spread based on burst count
-    const spread = (this.burstCount - 1) * 0.2;
-    const angle = baseAngle + (spread - (this.burstCount > 1 ? 0.2 : 0));
-    
-    const speed = 6;
-    const velocityX = Math.cos(angle) * speed;
-    const velocityY = Math.sin(angle) * speed;
-    
-    this.projectiles.push({
-      x: centerX - 5,
-      y: centerY - 5,
-      width: 10,
-      height: 10,
-      velocityX: velocityX,
-      velocityY: velocityY,
-      color: '#CDDC39', // Lime
-      age: 0,
-      damage: 1
-    });
-  }
-  
-  updateProjectiles(platforms, player) {
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const projectile = this.projectiles[i];
-      
-      // Move projectile
-      projectile.x += projectile.velocityX;
-      projectile.y += projectile.velocityY;
-      
-      // Increase age
-      projectile.age += 1;
-      
-      // Check if out of bounds or too old
-      if (projectile.x < -100 || projectile.x > 5000 || 
-          projectile.y < -100 || projectile.y > 2000 || 
-          projectile.age > 200) {
-        this.projectiles.splice(i, 1);
-        continue;
-      }
-      
-      // Check collision with player
-      if (player && 
-          projectile.x + projectile.width > player.x &&
-          projectile.x < player.x + player.width &&
-          projectile.y + projectile.height > player.y &&
-          projectile.y < player.y + player.height) {
-        
-        if (player.invulnerableTimer <= 0) {
-          player.getHurt(projectile.damage);
-        }
-        
-        // Remove projectile
-        this.projectiles.splice(i, 1);
-        continue;
-      }
-      
-      // Check collision with platforms
-      for (const platform of platforms) {
-        if (projectile.x + projectile.width > platform.x &&
-            projectile.x < platform.x + platform.width &&
-            projectile.y + projectile.height > platform.y &&
-            projectile.y < platform.y + platform.height) {
-          
-          // Create impact effect (placeholder)
-          
-          // Remove projectile
-          this.projectiles.splice(i, 1);
-          break;
-        }
-      }
-    }
-  }
-
-  draw(ctx, camera) {
-    if (!this.isActive) return;
-    
-    // Skip drawing if off-screen
-    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
-        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
-      return;
-    }
-
-    // Flashing effect when hurt
-    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
-      ctx.globalAlpha = 0.5;
-    }
-    
-    // Draw charging effect
-    if (this.alertLevel > 0.5 || this.isBursting) {
-      ctx.fillStyle = `rgba(205, 220, 57, ${this.alertLevel * 0.7})`;
-      ctx.beginPath();
-      ctx.arc(
-        this.x - camera.x + this.width / 2,
-        this.y - camera.y + this.height / 2,
-        this.width / 1.5 + Math.sin(Date.now() * 0.01) * 5,
-        0, Math.PI * 2
-      );
-      ctx.fill();
-    }
-    
-    // Draw body
-    ctx.fillStyle = this.color;
-    
-    // Core body - hexagonal shape
-    const centerX = this.x - camera.x + this.width / 2;
-    const centerY = this.y - camera.y + this.height / 2;
-    const radius = this.width / 2;
-    
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI / 3) + (this.isBursting ? Date.now() * 0.002 : 0);
-      const x = centerX + Math.cos(angle) * radius;
-      const y = centerY + Math.sin(angle) * radius;
-      
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    }
-    ctx.closePath();
-    ctx.fill();
-    
-    // Draw inner circle
-    ctx.fillStyle = '#689F38'; // Darker green
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius * 0.6, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Draw eye
-    const eyeSize = this.isBursting ? 8 : 6;
-    ctx.fillStyle = '#DCEDC8'; // Very light green
-    ctx.beginPath();
-    ctx.arc(
-      centerX + (this.facingRight ? 5 : -5),
-      centerY - 2,
-      eyeSize,
-      0, Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Draw pupil
-    ctx.fillStyle = '#33691E'; // Dark green
-    ctx.beginPath();
-    ctx.arc(
-      centerX + (this.facingRight ? 5 : -5),
-      centerY - 2,
-      eyeSize * 0.5,
-      0, Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Draw projectiles
-    for (const projectile of this.projectiles) {
-      ctx.fillStyle = projectile.color;
-      
-      // Draw energy ball
-      ctx.beginPath();
-      ctx.arc(
-        projectile.x - camera.x + projectile.width / 2,
-        projectile.y - camera.y + projectile.height / 2,
-        projectile.width / 2,
-        0, Math.PI * 2
-      );
-      ctx.fill();
-      
-      // Draw trail
-      ctx.strokeStyle = 'rgba(205, 220, 57, 0.6)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(
-        projectile.x - camera.x + projectile.width / 2,
-        projectile.y - camera.y + projectile.height / 2
-      );
-      ctx.lineTo(
-        projectile.x - camera.x + projectile.width / 2 - projectile.velocityX * 4,
-        projectile.y - camera.y + projectile.height / 2 - projectile.velocityY * 4
-      );
-      ctx.stroke();
-    }
-    
-    // Health indicator
-    if (this.health > 1) {
-      const healthBarWidth = this.width;
-      const barX = this.x - camera.x;
-      const barY = this.y - camera.y - 10;
-      
-      // Background
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(barX, barY, healthBarWidth, 4);
-      
-      // Health
-      ctx.fillStyle = '#AED581';
-      ctx.fillRect(barX, barY, healthBarWidth * (this.health / 2), 4);
-    }
-    
-    // Reset alpha
-    ctx.globalAlpha = 1;
-  }
-}
-
-// Export all enemy classes
-export { 
-  Enemy, 
-  WalkerEnemy, 
-  JumperEnemy, 
-  FlyerEnemy, 
-  ShooterEnemy, 
-  BossEnemy, 
-  BigWalkerEnemy,
-  FlipperEnemy,
-  WalkingShooterEnemy,
-  FastWalkerEnemy,
-  ChaserEnemy,
-  RangedAttackEnemy
-};
-
   update(delta, platforms, player) {
     // Basic physics
     this.velocityY += 0.5; // Gravity
@@ -1573,6 +987,372 @@ class BossEnemy extends Enemy {
   }
 }
 
+// BigWalkerEnemy.js - A larger, stronger version of WalkerEnemy
+class BigWalkerEnemy extends WalkerEnemy {
+  constructor(x, y) {
+    super(x, y);
+    // Make it bigger
+    this.width = 48;
+    this.height = 48;
+    // Make it stronger
+    this.health = 3;
+    // Make it slower
+    this.velocityX = 0.8;
+    // Different color
+    this.color = '#D32F2F'; // Darker red
+  }
+
+  // Override draw method to make it look different
+  draw(ctx, camera) {
+    if (!this.isActive) return;
+    
+    // Skip drawing if off-screen
+    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
+        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
+      return;
+    }
+
+    // Flashing effect when hurt
+    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
+      ctx.globalAlpha = 0.5;
+    }
+
+    // Draw enemy body
+    ctx.fillStyle = this.color;
+    
+    // "Walking" animation with bigger movement
+    const walkOffset = Math.sin(this.walkTimer / 100) * 3;
+    ctx.beginPath();
+    ctx.moveTo(this.x - camera.x, this.y - camera.y + this.height);
+    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height);
+    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height - 15 + walkOffset);
+    ctx.lineTo(this.x - camera.x, this.y - camera.y + this.height - 15 - walkOffset);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Draw enemy head - bigger
+    ctx.fillRect(
+      this.x - camera.x + 6, 
+      this.y - camera.y + this.height - 38, 
+      this.width - 12, 
+      24
+    );
+    
+    // Draw eyes - bigger and angrier
+    ctx.fillStyle = 'white';
+    const eyeX = this.facingRight ? this.x - camera.x + 30 : this.x - camera.x + 12;
+    ctx.fillRect(eyeX, this.y - camera.y + this.height - 32, 6, 10);
+    
+    // Draw eyebrows
+    ctx.fillStyle = '#B71C1C';
+    ctx.fillRect(
+      eyeX - 2,
+      this.y - camera.y + this.height - 36,
+      10,
+      3
+    );
+    
+    // Reset alpha
+    ctx.globalAlpha = 1;
+    
+    // Draw health indicator
+    if (this.health > 1) {
+      const healthBarWidth = this.width * 0.8;
+      const barX = this.x - camera.x + (this.width - healthBarWidth) / 2;
+      const barY = this.y - camera.y - 8;
+      
+      // Background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(barX, barY, healthBarWidth, 4);
+      
+      // Health
+      ctx.fillStyle = '#4CAF50';
+      ctx.fillRect(barX, barY, healthBarWidth * (this.health / 3), 4);
+    }
+  }
+}
+
+// FastWalkerEnemy.js - A faster version of WalkerEnemy
+class FastWalkerEnemy extends WalkerEnemy {
+  constructor(x, y) {
+    super(x, y);
+    // Make it faster
+    this.velocityX = 3;
+    // Change color
+    this.color = '#42A5F5'; // Blue
+    // Less health to balance speed
+    this.health = 1;
+  }
+
+  update(delta, platforms, player) {
+    super.update(delta, platforms, player);
+    
+    // Additional behavior - jump over small gaps
+    if (this.isGrounded) {
+      const edgeCheckX = this.facingRight ? this.x + this.width + 30 : this.x - 30;
+      let groundAhead = false;
+      
+      for (const platform of platforms) {
+        if (edgeCheckX >= platform.x && edgeCheckX <= platform.x + platform.width &&
+            Math.abs((this.y + this.height) - platform.y) < 5) {
+          groundAhead = true;
+          break;
+        }
+      }
+      
+      // Jump over small gaps
+      if (!groundAhead && Math.random() < 0.2) {
+        this.velocityY = -10;
+        this.isGrounded = false;
+      }
+    }
+    
+    // Create a motion trail effect
+    if (Math.random() < 0.2 && this.isGrounded) {
+      // Placeholder for particle effect
+      // You might want to add a particle system to create dust effects
+    }
+  }
+
+  draw(ctx, camera) {
+    if (!this.isActive) return;
+    
+    // Skip drawing if off-screen
+    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
+        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
+      return;
+    }
+
+    // Draw motion blur effect
+    if (Math.abs(this.velocityX) > 2) {
+      ctx.globalAlpha = 0.3;
+      const blurOffset = this.facingRight ? -5 : 5;
+      ctx.fillStyle = this.color;
+      ctx.fillRect(
+        this.x - camera.x + blurOffset, 
+        this.y - camera.y, 
+        this.width, 
+        this.height
+      );
+      ctx.globalAlpha = 1;
+    }
+
+    // Flashing effect when hurt
+    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
+      ctx.globalAlpha = 0.5;
+    }
+
+    // Draw enemy body
+    ctx.fillStyle = this.color;
+    
+    // Simple "running" animation with more exaggerated motion
+    const walkOffset = Math.sin(this.walkTimer / 60) * 3;
+    ctx.beginPath();
+    ctx.moveTo(this.x - camera.x, this.y - camera.y + this.height);
+    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height);
+    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height - 10 + walkOffset);
+    ctx.lineTo(this.x - camera.x, this.y - camera.y + this.height - 10 - walkOffset);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Draw enemy head - leaned forward when running
+    const leanOffset = this.facingRight ? 3 : -3;
+    ctx.fillRect(
+      this.x - camera.x + 4 + leanOffset, 
+      this.y - camera.y + this.height - 26, 
+      this.width - 8, 
+      16
+    );
+    
+    // Draw streamlined eyes
+    ctx.fillStyle = 'white';
+    const eyeX = this.facingRight ? this.x - camera.x + 20 + leanOffset : this.x - camera.x + 8 + leanOffset;
+    const eyeWidth = this.facingRight ? 6 : 6;
+    ctx.fillRect(eyeX, this.y - camera.y + this.height - 22, eyeWidth, 8);
+    
+    // Reset alpha
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ChaserEnemy.js - Enemy that actively chases the player
+class ChaserEnemy extends Enemy {
+  constructor(x, y) {
+    super(x, y, 30, 30);
+    this.detectionRange = 300;
+    this.chaseSpeed = 2;
+    this.idleSpeed = 0.5;
+    this.color = '#FF5252'; // Red accent
+    this.isChasing = false;
+    this.idleTimer = 0;
+    this.idleDirection = 1;
+    this.alertLevel = 0;
+  }
+
+  update(delta, platforms, player) {
+    const wasGrounded = this.isGrounded;
+    this.isGrounded = false;
+    
+    // Call base update for physics
+    super.update(delta, platforms, player);
+    
+    // Check if we should chase the player
+    if (player) {
+      const dx = player.x - this.x;
+      const dy = player.y - this.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < this.detectionRange) {
+        // Start chasing
+        this.isChasing = true;
+        this.alertLevel = Math.min(1, this.alertLevel + delta * 0.005);
+        
+        // Move toward player if on ground
+        if (this.isGrounded) {
+          this.facingRight = dx > 0;
+          this.velocityX = this.facingRight ? this.chaseSpeed : -this.chaseSpeed;
+          
+          // Jump if player is above and reachable
+          if (dy < -50 && Math.abs(dx) < 100 && Math.random() < 0.03) {
+            this.velocityY = -12;
+          }
+          
+          // Jump if there's a wall in the way
+          const wallCheckX = this.facingRight ? 
+            this.x + this.width + 5 : this.x - 5;
+          
+          for (const platform of platforms) {
+            if (wallCheckX >= platform.x && wallCheckX <= platform.x + platform.width &&
+                this.y + this.height > platform.y && this.y < platform.y + platform.height) {
+              this.velocityY = -12;
+              break;
+            }
+          }
+        }
+      } else {
+        // Stop chasing if player is too far
+        this.isChasing = false;
+        this.alertLevel = Math.max(0, this.alertLevel - delta * 0.002);
+        this.idleMovement(delta);
+      }
+      
+      // Check for player collision
+      this.checkPlayerCollision(player);
+    } else {
+      // No player, just idle
+      this.isChasing = false;
+      this.alertLevel = 0;
+      this.idleMovement(delta);
+    }
+  }
+  
+  idleMovement(delta) {
+    this.idleTimer += delta;
+    
+    // Change direction periodically
+    if (this.idleTimer > 2000) {
+      this.idleDirection = -this.idleDirection;
+      this.facingRight = this.idleDirection > 0;
+      this.idleTimer = 0;
+    }
+    
+    // Move slowly in the current direction
+    this.velocityX = this.idleDirection * this.idleSpeed;
+  }
+
+  draw(ctx, camera) {
+    if (!this.isActive) return;
+    
+    // Skip drawing if off-screen
+    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
+        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
+      return;
+    }
+
+    // Flashing effect when hurt
+    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
+      ctx.globalAlpha = 0.5;
+    }
+    
+    // Draw alert indicator
+    if (this.alertLevel > 0) {
+      ctx.fillStyle = `rgba(255, 0, 0, ${this.alertLevel * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(
+        this.x - camera.x + this.width / 2,
+        this.y - camera.y - 10,
+        8,
+        0, Math.PI * 2
+      );
+      ctx.fill();
+    }
+
+    // Draw enemy body
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(
+      this.x - camera.x + this.width / 2,
+      this.y - camera.y + this.height / 2,
+      this.width / 2,
+      0, Math.PI * 2
+    );
+    ctx.fill();
+    
+    // Draw eyes based on alert level
+    ctx.fillStyle = 'white';
+    const eyeSize = 3 + this.alertLevel * 3;
+    const eyeSpacing = 8;
+    
+    // Left eye
+    ctx.beginPath();
+    ctx.arc(
+      this.x - camera.x + this.width / 2 - eyeSpacing,
+      this.y - camera.y + this.height / 2 - 3,
+      eyeSize,
+      0, Math.PI * 2
+    );
+    ctx.fill();
+    
+    // Right eye
+    ctx.beginPath();
+    ctx.arc(
+      this.x - camera.x + this.width / 2 + eyeSpacing,
+      this.y - camera.y + this.height / 2 - 3,
+      eyeSize,
+      0, Math.PI * 2
+    );
+    ctx.fill();
+    
+    // Draw pupils - look toward player
+    ctx.fillStyle = 'black';
+    const pupilOffset = this.facingRight ? 1 : -1;
+    const pupilSize = eyeSize * 0.6;
+    
+    // Left pupil
+    ctx.beginPath();
+    ctx.arc(
+      this.x - camera.x + this.width / 2 - eyeSpacing + pupilOffset,
+      this.y - camera.y + this.height / 2 - 3,
+      pupilSize,
+      0, Math.PI * 2
+    );
+    ctx.fill();
+    
+    // Right pupil
+    ctx.beginPath();
+    ctx.arc(
+      this.x - camera.x + this.width / 2 + eyeSpacing + pupilOffset,
+      this.y - camera.y + this.height / 2 - 3,
+      pupilSize,
+      0, Math.PI * 2
+    );
+    ctx.fill();
+    
+    // Reset alpha
+    ctx.globalAlpha = 1;
+  }
+}
+
 // FlipperEnemy.js - Enemy that jumps and does flips
 class FlipperEnemy extends Enemy {
   constructor(x, y) {
@@ -1710,283 +1490,86 @@ class FlipperEnemy extends Enemy {
   }
 }
 
-// BigWalkerEnemy.js - A larger, stronger version of WalkerEnemy
-class BigWalkerEnemy extends WalkerEnemy {
+// RangedAttackEnemy.js - Enemy with a more complex ranged attack pattern
+class RangedAttackEnemy extends Enemy {
   constructor(x, y) {
-    super(x, y);
-    // Make it bigger
-    this.width = 48;
-    this.height = 48;
-    // Make it stronger
-    this.health = 3;
-    // Make it slower
-    this.velocityX = 0.8;
-    // Different color
-    this.color = '#D32F2F'; // Darker red
-  }
-
-  // Override draw method to make it look different
-  draw(ctx, camera) {
-    if (!this.isActive) return;
-    
-    // Skip drawing if off-screen
-    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
-        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
-      return;
-    }
-
-    // Flashing effect when hurt
-    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
-      ctx.globalAlpha = 0.5;
-    }
-
-    // Draw enemy body
-    ctx.fillStyle = this.color;
-    
-    // "Walking" animation with bigger movement
-    const walkOffset = Math.sin(this.walkTimer / 100) * 3;
-    ctx.beginPath();
-    ctx.moveTo(this.x - camera.x, this.y - camera.y + this.height);
-    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height);
-    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height - 15 + walkOffset);
-    ctx.lineTo(this.x - camera.x, this.y - camera.y + this.height - 15 - walkOffset);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Draw enemy head - bigger
-    ctx.fillRect(
-      this.x - camera.x + 6, 
-      this.y - camera.y + this.height - 38, 
-      this.width - 12, 
-      24
-    );
-    
-    // Draw eyes - bigger and angrier
-    ctx.fillStyle = 'white';
-    const eyeX = this.facingRight ? this.x - camera.x + 30 : this.x - camera.x + 12;
-    ctx.fillRect(eyeX, this.y - camera.y + this.height - 32, 6, 10);
-    
-    // Draw eyebrows
-    ctx.fillStyle = '#B71C1C';
-    ctx.fillRect(
-      eyeX - 2,
-      this.y - camera.y + this.height - 36,
-      10,
-      3
-    );
-    
-    // Reset alpha
-    ctx.globalAlpha = 1;
-    
-    // Draw health indicator
-    if (this.health > 1) {
-      const healthBarWidth = this.width * 0.8;
-      const barX = this.x - camera.x + (this.width - healthBarWidth) / 2;
-      const barY = this.y - camera.y - 8;
-      
-      // Background
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(barX, barY, healthBarWidth, 4);
-      
-      // Health
-      ctx.fillStyle = '#4CAF50';
-      ctx.fillRect(barX, barY, healthBarWidth * (this.health / 3), 4);
-    }
-  }
-}
-
-// WalkingShooterEnemy.js - Enemy that walks and shoots
-class WalkingShooterEnemy extends ShooterEnemy {
-  constructor(x, y) {
-    super(x, y);
-    this.velocityX = 1; // Walking speed
-    this.walkTimer = 0;
-    this.color = '#E64A19'; // Darker orange
+    super(x, y, 40, 40);
+    this.attackTimer = 0;
+    this.attackInterval = 3000;
+    this.projectiles = [];
+    this.color = '#8BC34A'; // Light Green
+    this.alertLevel = 0;
+    this.burstCount = 0;
+    this.burstTotal = 3;
+    this.burstDelay = 200;
+    this.burstTimer = 0;
+    this.isBursting = false;
+    this.health = 2;
   }
 
   update(delta, platforms, player) {
-    // Track if we were on ground before physics update
-    const wasGrounded = this.isGrounded;
-    this.isGrounded = false;
-    
-    // Call base update but use Enemy's update instead of ShooterEnemy's
-    // since we want to actually move
-    Enemy.prototype.update.call(this, delta, platforms, player);
-    
-    // Edge detection - check if there's ground ahead
-    if (this.isGrounded) {
-      const edgeCheckX = this.facingRight ? this.x + this.width + 5 : this.x - 5;
-      let groundAhead = false;
-      
-      for (const platform of platforms) {
-        if (edgeCheckX >= platform.x && edgeCheckX <= platform.x + platform.width &&
-            Math.abs((this.y + this.height) - platform.y) < 5) {
-          groundAhead = true;
-          break;
-        }
-      }
-      
-      // Turn around if no ground ahead
-      if (!groundAhead) {
-        this.velocityX = -this.velocityX;
-        this.facingRight = !this.facingRight;
-      }
+    if (this.hurtTimer > 0) {
+      this.hurtTimer -= delta;
     }
     
-    // Shooter enemy logic
+    // Face the player
     if (player) {
-      // Only change facing when shooting, not during walking
-      const playerVisible = Math.abs(player.y - this.y) < 150;
-      const playerNearby = Math.abs(player.x - this.x) < 250;
+      this.facingRight = player.x > this.x;
       
-      if (playerVisible && playerNearby) {
-        // Override walking direction to face player when shooting
-        const playerDirection = player.x > this.x ? 1 : -1;
-        this.facingRight = playerDirection > 0;
-        
-        // Update shooting timer
-        this.shootTimer += delta;
+      // Update attack timer
+      if (Math.abs(player.x - this.x) < 400) { // Only attack when player is in range
+        this.attackTimer += delta;
         
         // Calculate alert level for charging animation
-        this.alertLevel = Math.min(1, this.shootTimer / this.shootInterval);
+        this.alertLevel = Math.min(1, this.attackTimer / this.attackInterval);
         
-        // Time to shoot!
-        if (this.shootTimer >= this.shootInterval) {
-          this.shoot(player);
-          this.shootTimer = 0;
-          this.alertLevel = 0;
+        // Time to start a burst!
+        if (this.attackTimer >= this.attackInterval && !this.isBursting) {
+          this.startBurst(player);
+        }
+        
+        // Update burst if in progress
+        if (this.isBursting) {
+          this.updateBurst(delta, player);
         }
       } else {
         // Reset timer when player is far away
-        this.shootTimer = Math.max(0, this.shootTimer - delta * 0.5);
-        this.alertLevel = Math.min(1, this.shootTimer / this.shootInterval);
+        this.attackTimer = Math.max(0, this.attackTimer - delta * 0.5);
+        this.alertLevel = Math.min(1, this.attackTimer / this.attackInterval);
       }
+      
+      // Check player collision
+      this.checkPlayerCollision(player);
     }
     
-    // Update projectiles - copy from ShooterEnemy
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const p = this.projectiles[i];
-      
-      p.x += p.velocityX;
-      p.y += p.velocityY;
-      p.velocityY += 0.1;
-      
-      if (p.x < -100 || p.x > 5000 || p.y > 2000) {
-        this.projectiles.splice(i, 1);
-        continue;
-      }
-      
-      if (player && 
-          p.x + p.width > player.x && p.x < player.x + player.width &&
-          p.y + p.height > player.y && p.y < player.y + player.height) {
-        
-        if (player.invulnerableTimer <= 0) {
-          player.getHurt(1);
-        }
-        
-        this.createImpactEffect(p.x, p.y);
-        this.projectiles.splice(i, 1);
-        continue;
-      }
-      
-      for (const platform of platforms) {
-        if (p.x + p.width > platform.x && p.x < platform.x + platform.width &&
-            p.y + p.height > platform.y && p.y < platform.y + platform.height) {
-          
-          this.createImpactEffect(p.x, p.y);
-          this.projectiles.splice(i, 1);
-          break;
-        }
-      }
-    }
+    // Update projectiles
+    this.updateProjectiles(platforms, player);
+  }
+  
+  startBurst(player) {
+    this.isBursting = true;
+    this.burstCount = 0;
+    this.burstTimer = 0;
+    this.attackTimer = 0;
+  }
+  
+  updateBurst(delta, player) {
+    this.burstTimer += delta;
     
-    // Animate walking
-    if (this.isGrounded) {
-      this.walkTimer += delta;
+    if (this.burstTimer >= this.burstDelay) {
+      this.shootProjectile(player);
+      this.burstCount++;
+      this.burstTimer = 0;
+      
+      if (this.burstCount >= this.burstTotal) {
+        this.isBursting = false;
+      }
     }
   }
-
-  draw(ctx, camera) {
-    if (!this.isActive) return;
-    
-    // Skip drawing if off-screen
-    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
-        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
-      return;
-    }
-
-    // Flashing effect when hurt
-    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
-      ctx.globalAlpha = 0.5;
-    }
-    
-    // Draw base - similar to WalkerEnemy but with ShooterEnemy's upper part
-    ctx.fillStyle = this.color;
-    
-    // Simple "walking" animation by changing shape slightly
-    const walkOffset = Math.sin(this.walkTimer / 100) * 2;
-    ctx.beginPath();
-    ctx.moveTo(this.x - camera.x, this.y - camera.y + this.height);
-    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height);
-    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height - 10 + walkOffset);
-    ctx.lineTo(this.x - camera.x, this.y - camera.y + this.height - 10 - walkOffset);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Draw body, which "charges up" based on alert level
-    const glowColor = `rgba(255, ${255 * (1 - this.alertLevel)}, 0, 1)`;
-    ctx.fillStyle = glowColor;
-    ctx.beginPath();
-    ctx.arc(
-      this.x - camera.x + this.width / 2,
-      this.y - camera.y + this.height / 2 - 5,
-      this.width / 2.5,
-      0, Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Draw turret
-    ctx.fillStyle = this.color;
-    const turretLen = 12, turretW = 6;
-    const turretX = this.facingRight
-      ? this.x - camera.x + this.width / 2
-      : this.x - camera.x + this.width / 2 - turretLen;
-    
-    ctx.fillRect(
-      turretX,
-      this.y - camera.y + this.height / 2 - turretW / 2,
-      turretLen,
-      turretW
-    );
-    
-    // Draw projectiles
-    ctx.fillStyle = '#FFCC80'; // Light orange
-    for (const p of this.projectiles) {
-      ctx.beginPath();
-      ctx.arc(
-        p.x - camera.x + p.width / 2,
-        p.y - camera.y + p.height / 2,
-        p.width / 2,
-        0, Math.PI * 2
-      );
-      ctx.fill();
-      
-      // Draw projectile trail
-      ctx.beginPath();
-      ctx.strokeStyle = 'rgba(255, 204, 128, 0.5)';
-      ctx.lineWidth = 2;
-      ctx.moveTo(
-        p.x - camera.x + p.width / 2,
-        p.y - camera.y + p.height / 2
-      );
-      ctx.lineTo(
-        p.x - camera.x + p.width / 2 - p.velocityX * 3,
-        p.y - camera.y + p.height / 2 - p.velocityY * 3
-      );
-      ctx.stroke();
-    }
-    
-    // Reset alpha
-    ctx.globalAlpha = 1;
-  }
-}
+  
+  shootProjectile(player) {
+    // Calculate angle to player with spread
+    const centerX = this.x + this.width / 2;
+    const centerY = this.y + this.height / 2;
+    const playerCenterX = player.x + player.width / 2;
+    const playerCenterY = player.y + player.height / 2;
