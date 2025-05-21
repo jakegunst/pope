@@ -14,63 +14,7 @@ export class Enemy {
     this.hurtTimer = 0;
     this.health = 1;
     this.facingRight = true;
-} // <-- Add this closing brace
-  draw(ctx, camera) {
-    if (!this.isActive) return;
-    
-    // Skip drawing if off-screen
-    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
-        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
-      return;
-    }
-
-    // Flashing effect when hurt
-    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
-      ctx.globalAlpha = 0.5;
-    }
-    
-    // Draw enemy body
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(
-      this.x - camera.x + this.width / 2,
-      this.y - camera.y + this.height / 2,
-      this.width / 2,
-      0, Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Draw "charging" indicator based on alert level
-    if (this.alertLevel > 0) {
-      ctx.strokeStyle = `rgba(205, 220, 57, ${this.alertLevel})`;
-      ctx.lineWidth = 3 * this.alertLevel;
-      ctx.beginPath();
-      ctx.arc(
-        this.x - camera.x + this.width / 2,
-        this.y - camera.y + this.height / 2,
-        this.width / 2 + 5,
-        0, Math.PI * 2
-      );
-      ctx.stroke();
-    }
-    
-    // Draw projectiles
-    for (const projectile of this.projectiles) {
-      ctx.fillStyle = projectile.color || '#CDDC39';
-      ctx.beginPath();
-      ctx.arc(
-        projectile.x - camera.x + projectile.width / 2,
-        projectile.y - camera.y + projectile.height / 2,
-        projectile.width / 2,
-        0, Math.PI * 2
-      );
-      ctx.fill();
-    }
-    
-    // Reset alpha
-    ctx.globalAlpha = 1;
-  }
-}
+  } // Keep this closing brace we added
 
   update(delta, platforms, player) {
     // Basic physics
@@ -1700,3 +1644,4 @@ export class RangedAttackEnemy extends Enemy {
       }
     }
   }
+}
