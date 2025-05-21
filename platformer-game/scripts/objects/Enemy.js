@@ -1124,6 +1124,91 @@ class FlipperEnemy extends Enemy {
   }
 }
 
+// BigWalkerEnemy.js - A larger, stronger version of WalkerEnemy
+class BigWalkerEnemy extends WalkerEnemy {
+  constructor(x, y) {
+    super(x, y);
+    // Make it bigger
+    this.width = 48;
+    this.height = 48;
+    // Make it stronger
+    this.health = 3;
+    // Make it slower
+    this.velocityX = 0.8;
+    // Different color
+    this.color = '#D32F2F'; // Darker red
+  }
+
+  // Override draw method to make it look different
+  draw(ctx, camera) {
+    if (!this.isActive) return;
+    
+    // Skip drawing if off-screen
+    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
+        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
+      return;
+    }
+
+    // Flashing effect when hurt
+    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
+      ctx.globalAlpha = 0.5;
+    }
+
+    // Draw enemy body
+    ctx.fillStyle = this.color;
+    
+    // "Walking" animation with bigger movement
+    const walkOffset = Math.sin(this.walkTimer / 100) * 3;
+    ctx.beginPath();
+    ctx.moveTo(this.x - camera.x, this.y - camera.y + this.height);
+    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height);
+    ctx.lineTo(this.x - camera.x + this.width, this.y - camera.y + this.height - 15 + walkOffset);
+    ctx.lineTo(this.x - camera.x, this.y - camera.y + this.height - 15 - walkOffset);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Draw enemy head - bigger
+    ctx.fillRect(
+      this.x - camera.x + 6, 
+      this.y - camera.y + this.height - 38, 
+      this.width - 12, 
+      24
+    );
+    
+    // Draw eyes - bigger and angrier
+    ctx.fillStyle = 'white';
+    const eyeX = this.facingRight ? this.x - camera.x + 30 : this.x - camera.x + 12;
+    ctx.fillRect(eyeX, this.y - camera.y + this.height - 32, 6, 10);
+    
+    // Draw eyebrows
+    ctx.fillStyle = '#B71C1C';
+    ctx.fillRect(
+      eyeX - 2,
+      this.y - camera.y + this.height - 36,
+      10,
+      3
+    );
+    
+    // Reset alpha
+    ctx.globalAlpha = 1;
+    
+    // Draw health indicator
+    if (this.health > 1) {
+      const healthBarWidth = this.width * 0.8;
+      const barX = this.x - camera.x + (this.width - healthBarWidth) / 2;
+      const barY = this.y - camera.y - 8;
+      
+      // Background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(barX, barY, healthBarWidth, 4);
+      
+      // Health
+      ctx.fillStyle = '#4CAF50';
+      ctx.fillRect(barX, barY, healthBarWidth * (this.health / 3), 4);
+    }
+  }
+}
+
 // WalkingShooterEnemy.js - Enemy that walks and shoots
 class WalkingShooterEnemy extends ShooterEnemy {
   constructor(x, y) {
