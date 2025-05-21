@@ -1,5 +1,7 @@
 // Enemy.js - Base class for all enemies
-class Enemy {
+
+// Base Enemy class
+export class Enemy {
   constructor(x, y, width, height) {
     this.x = x;
     this.y = y;
@@ -12,8 +14,6 @@ class Enemy {
     this.hurtTimer = 0;
     this.health = 1;
     this.facingRight = true;
-  } // Closing brace for updateProjectiles method
-
   draw(ctx, camera) {
     if (!this.isActive) return;
     
@@ -69,7 +69,7 @@ class Enemy {
     // Reset alpha
     ctx.globalAlpha = 1;
   }
-} // Closing brace for RangedAttackEnemy class
+}
 
   update(delta, platforms, player) {
     // Basic physics
@@ -199,7 +199,7 @@ class Enemy {
 }
 
 // Basic enemy that walks back and forth
-class WalkerEnemy extends Enemy {
+export class WalkerEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 32, 32);
     this.velocityX = 1.5;
@@ -414,7 +414,7 @@ class WalkerEnemy extends Enemy {
 }
 
 // Enemy that jumps up periodically
-class JumperEnemy extends Enemy {
+export class JumperEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 28, 36);
     this.jumpTimer = 0;
@@ -514,7 +514,7 @@ class JumperEnemy extends Enemy {
 }
 
 // Enemy that flies in patterns with dive bombs
-class FlyerEnemy extends Enemy {
+export class FlyerEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 32, 24);
     this.startX = x;
@@ -741,7 +741,7 @@ class FlyerEnemy extends Enemy {
 }
 
 // Stationary enemy that shoots projectiles
-class ShooterEnemy extends Enemy {
+export class ShooterEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 36, 36);
     this.shootTimer = 0;
@@ -944,7 +944,7 @@ class ShooterEnemy extends Enemy {
 }
 
 // Multi-phase difficult enemy with special attacks
-class BossEnemy extends Enemy {
+export class BossEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 64, 64);
     this.health = 10;
@@ -1043,7 +1043,7 @@ class BossEnemy extends Enemy {
 }
 
 // A larger, stronger version of WalkerEnemy
-class BigWalkerEnemy extends WalkerEnemy {
+export class BigWalkerEnemy extends WalkerEnemy {
   constructor(x, y) {
     super(x, y);
     // Make it bigger
@@ -1128,7 +1128,7 @@ class BigWalkerEnemy extends WalkerEnemy {
 }
 
 // A faster version of WalkerEnemy
-class FastWalkerEnemy extends WalkerEnemy {
+export class FastWalkerEnemy extends WalkerEnemy {
   constructor(x, y) {
     super(x, y);
     // Make it faster
@@ -1225,7 +1225,7 @@ class FastWalkerEnemy extends WalkerEnemy {
 }
 
 // Enemy that actively chases the player
-class ChaserEnemy extends Enemy {
+export class ChaserEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 30, 30);
     this.detectionRange = 300;
@@ -1403,7 +1403,7 @@ class ChaserEnemy extends Enemy {
 }
 
 // Enemy that jumps and does flips
-class FlipperEnemy extends Enemy {
+export class FlipperEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 32, 32);
     this.jumpTimer = 0;
@@ -1540,7 +1540,7 @@ class FlipperEnemy extends Enemy {
 }
 
 // Enemy with a more complex ranged attack pattern
-class RangedAttackEnemy extends Enemy {
+export class RangedAttackEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 40, 40);
     this.attackTimer = 0;
@@ -1698,3 +1698,4 @@ class RangedAttackEnemy extends Enemy {
         }
       }
     }
+  }
