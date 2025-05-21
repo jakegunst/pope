@@ -1,13 +1,14 @@
-// Enemy.js - Base enemy class
+// Enemy.js - Base class for all enemies
 class Enemy {
   constructor(x, y, width, height) {
     this.x = x;
     this.y = y;
-    this.width = width;
-    this.height = height;
+    this.width = width || 32;
+    this.height = height || 32;
     this.velocityX = 0;
     this.velocityY = 0;
     this.isActive = true;
+    this.isGrounded = false;
     this.hurtTimer = 0;
     this.health = 1;
     this.facingRight = true;
@@ -33,7 +34,6 @@ class Enemy {
     }
   }
 
-  // Basic platform collision checking
   checkPlatformCollisions(platforms) {
     for (const platform of platforms) {
       // Skip one-way platforms if we're moving up
@@ -71,7 +71,6 @@ class Enemy {
     }
   }
 
-  // Check collision with player
   checkPlayerCollision(player) {
     // Don't check collision if enemy is hurt or player is hurt
     if (this.hurtTimer > 0 || player.invulnerableTimer > 0) return false;
@@ -117,7 +116,6 @@ class Enemy {
 
   die() {
     this.isActive = false;
-    // You might want to add particle effects or sound here
   }
 
   draw(ctx, camera) {
@@ -143,7 +141,7 @@ class Enemy {
   }
 }
 
-// WalkerEnemy.js - Basic enemy that walks back and forth
+// Basic enemy that walks back and forth
 class WalkerEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 32, 32);
@@ -358,7 +356,7 @@ class WalkerEnemy extends Enemy {
   }
 }
 
-// JumperEnemy.js - Enemy that jumps up periodically
+// Enemy that jumps up periodically
 class JumperEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 28, 36);
@@ -458,7 +456,7 @@ class JumperEnemy extends Enemy {
   }
 }
 
-// FlyerEnemy.js - Enemy that flies in patterns with dive bombs
+// Enemy that flies in patterns with dive bombs
 class FlyerEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 32, 24);
@@ -685,7 +683,7 @@ class FlyerEnemy extends Enemy {
   }
 }
 
-// ShooterEnemy.js - Stationary enemy that shoots projectiles
+// Stationary enemy that shoots projectiles
 class ShooterEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 36, 36);
@@ -888,7 +886,7 @@ class ShooterEnemy extends Enemy {
   }
 }
 
-// BossEnemy.js - Multi-phase difficult enemy with special attacks
+// Multi-phase difficult enemy with special attacks
 class BossEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 64, 64);
@@ -987,7 +985,7 @@ class BossEnemy extends Enemy {
   }
 }
 
-// BigWalkerEnemy.js - A larger, stronger version of WalkerEnemy
+// A larger, stronger version of WalkerEnemy
 class BigWalkerEnemy extends WalkerEnemy {
   constructor(x, y) {
     super(x, y);
@@ -1072,7 +1070,7 @@ class BigWalkerEnemy extends WalkerEnemy {
   }
 }
 
-// FastWalkerEnemy.js - A faster version of WalkerEnemy
+// A faster version of WalkerEnemy
 class FastWalkerEnemy extends WalkerEnemy {
   constructor(x, y) {
     super(x, y);
@@ -1105,12 +1103,6 @@ class FastWalkerEnemy extends WalkerEnemy {
         this.velocityY = -10;
         this.isGrounded = false;
       }
-    }
-    
-    // Create a motion trail effect
-    if (Math.random() < 0.2 && this.isGrounded) {
-      // Placeholder for particle effect
-      // You might want to add a particle system to create dust effects
     }
   }
 
@@ -1175,7 +1167,7 @@ class FastWalkerEnemy extends WalkerEnemy {
   }
 }
 
-// ChaserEnemy.js - Enemy that actively chases the player
+// Enemy that actively chases the player
 class ChaserEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 30, 30);
@@ -1353,7 +1345,7 @@ class ChaserEnemy extends Enemy {
   }
 }
 
-// FlipperEnemy.js - Enemy that jumps and does flips
+// Enemy that jumps and does flips
 class FlipperEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 32, 32);
@@ -1490,7 +1482,7 @@ class FlipperEnemy extends Enemy {
   }
 }
 
-// RangedAttackEnemy.js - Enemy with a more complex ranged attack pattern
+// Enemy with a more complex ranged attack pattern
 class RangedAttackEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 40, 40);
@@ -1573,3 +1565,80 @@ class RangedAttackEnemy extends Enemy {
     const centerY = this.y + this.height / 2;
     const playerCenterX = player.x + player.width / 2;
     const playerCenterY = player.y + player.height / 2;
+    
+    const dx = playerCenterX - centerX;
+    const dy = playerCenterY - centerY;
+    const baseAngle = Math.atan2(dy, dx);
+    
+    // Add some spread based on burst count
+    const spread = (this.burstCount - 1) * 0.2;
+    const angle = baseAngle + (spread - (this.burstCount > 1 ? 0.2 : 0));
+    
+    const speed = 6;
+    const velocityX = Math.cos(angle) * speed;
+    const velocityY = Math.sin(angle) * speed;
+    
+    this.projectiles.push({
+      x: centerX - 5,
+      y: centerY - 5,
+      width: 10,
+      height: 10,
+      velocityX: velocityX,
+      velocityY: velocityY,
+      color: '#CDDC39', // Lime
+      age: 0,
+      damage: 1
+    });
+  }
+  
+  updateProjectiles(platforms, player) {
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const projectile = this.projectiles[i];
+      
+      // Move projectile
+      projectile.x += projectile.velocityX;
+      projectile.y += projectile.velocityY;
+      
+      // Increase age
+      projectile.age += 1;
+      
+      // Check if out of bounds or too old
+      if (projectile.x < -100 || projectile.x > 5000 || 
+          projectile.y < -100 || projectile.y > 2000 || 
+          projectile.age > 200) {
+        this.projectiles.splice(i, 1);
+        continue;
+      }
+      
+      // Check collision with player
+      if (player && 
+          projectile.x + projectile.width > player.x &&
+          projectile.x < player.x + player.width &&
+          projectile.y + projectile.height > player.y &&
+          projectile.y < player.y + player.height) {
+        
+        if (player.invulnerableTimer <= 0) {
+          player.getHurt(projectile.damage);
+        }
+        
+        // Remove projectile
+        this.projectiles.splice(i, 1);
+        continue;
+      }
+      
+      // Check collision with platforms
+      for (const platform of platforms) {
+        if (projectile.x + projectile.width > platform.x &&
+            projectile.x < platform.x + platform.width &&
+            projectile.y + projectile.height > platform.y &&
+            projectile.y < platform.y + platform.height) {
+          
+          // Create impact effect (placeholder)
+          
+          // Remove projectile
+          this.projectiles.splice(i, 1);
+          break;
+        }
+      }
+    }
+  }
