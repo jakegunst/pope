@@ -329,20 +329,6 @@ class JumperEnemy extends Enemy {
   }
 }
 
-// FlyerEnemy.js - Enemy that flies in patterns
-class FlyerEnemy extends Enemy {
-  constructor(x, y) {
-    super(x, y, 32, 24);
-    this.startX = x;
-    this.startY = y;
-    this.amplitude = 80; // How far it moves in each direction
-    this.period = 4000; // ms to complete one full movement cycle
-    this.timer = 0;
-    this.patternType = Math.floor(Math.random() * 3); // 0: horizontal, 1: vertical, 2: circular
-    this.color = '#4CAF50'; // Green
-    this.wingAngle = 0;
-  }
-
   update(delta, platforms, player) {
     // Skip gravity and platform collision since it flies
     this.timer += delta;
