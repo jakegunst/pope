@@ -1,5 +1,5 @@
 // Enemy.js - Base enemy class
-class Enemy {
+export class Enemy {
   constructor(x, y, width, height) {
     this.x = x;
     this.y = y;
@@ -144,7 +144,7 @@ class Enemy {
 }
 
 // WalkerEnemy.js - Basic enemy that walks back and forth
-class WalkerEnemy extends Enemy {
+export class WalkerEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 32, 32);
     this.velocityX = 1.5;
@@ -359,7 +359,7 @@ class WalkerEnemy extends Enemy {
 }
 
 // JumperEnemy.js - Enemy that jumps up periodically
-class JumperEnemy extends Enemy {
+export class JumperEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 28, 36);
     this.jumpTimer = 0;
@@ -459,7 +459,7 @@ class JumperEnemy extends Enemy {
 }
 
 // FlyerEnemy.js - Enemy that flies in patterns with dive bombs
-class FlyerEnemy extends Enemy {
+export class FlyerEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 32, 24);
     this.startX = x;
@@ -686,7 +686,7 @@ class FlyerEnemy extends Enemy {
 }
 
 // ShooterEnemy.js - Stationary enemy that shoots projectiles
-class ShooterEnemy extends Enemy {
+export class ShooterEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 36, 36);
     this.shootTimer = 0;
@@ -889,7 +889,7 @@ class ShooterEnemy extends Enemy {
 }
 
 // BossEnemy.js - Multi-phase difficult enemy with special attacks
-class BossEnemy extends Enemy {
+export class BossEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 64, 64);
     this.health = 10;
@@ -988,7 +988,7 @@ class BossEnemy extends Enemy {
 }
 
 // FlipperEnemy.js - Enemy that jumps and does flips
-class FlipperEnemy extends Enemy {
+export class FlipperEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 32, 32);
     this.jumpTimer = 0;
@@ -1125,7 +1125,7 @@ class FlipperEnemy extends Enemy {
 }
 
 // BigWalkerEnemy.js - A larger, stronger version of WalkerEnemy
-class BigWalkerEnemy extends WalkerEnemy {
+export class BigWalkerEnemy extends WalkerEnemy {
   constructor(x, y) {
     super(x, y);
     // Make it bigger
@@ -1210,7 +1210,7 @@ class BigWalkerEnemy extends WalkerEnemy {
 }
 
 // WalkingShooterEnemy.js - Enemy that walks and shoots
-class WalkingShooterEnemy extends ShooterEnemy {
+export class WalkingShooterEnemy extends ShooterEnemy {
   constructor(x, y) {
     super(x, y);
     this.velocityX = 1; // Walking speed
