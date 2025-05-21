@@ -286,7 +286,7 @@ class WalkerEnemy extends Enemy {
     // Animate walking
     if (this.isGrounded) {
       this.walkTimer += delta;
-    }Grounded = false;
+    }
 
     // Call base update for physics and basic collision
     super.update(delta, platforms, player);
