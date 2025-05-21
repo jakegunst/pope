@@ -117,5 +117,18 @@
     </div>
 
     <script type="module" src="/scripts/engine/game.js"></script>
+    <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded");
+    const startButton = document.getElementById('start-button');
+    console.log("Start button:", startButton);
+    if (startButton) {
+      startButton.addEventListener('click', function() {
+        console.log("Start button clicked");
+        // Here you could manually trigger your startGame function
+      });
+    }
+  });
+</script>
 </body>
 </html>
