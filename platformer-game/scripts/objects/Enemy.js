@@ -375,7 +375,7 @@ export class WalkingShooterEnemy extends Enemy {
   // For now, this would be enough to make the import work
 }
 
-// Fixed JumperEnemy class with player collision
+// Enemy that jumps in arcs back and forth
 export class JumperEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 28, 36);
@@ -383,21 +383,40 @@ export class JumperEnemy extends Enemy {
     this.jumpInterval = 2000; // ms between jumps
     this.color = '#9C27B0'; // Purple
     this.squishAmount = 0;
+    this.jumpDirection = 1; // 1 for right, -1 for left
+    this.jumpForce = -16; // Vertical jump force
+    this.jumpSpeed = 3; // Horizontal speed while jumping
+    this.startX = x; // Remember starting position
+    this.maxJumpDistance = 150; // How far it can jump from start position
   }
 
   update(delta, platforms, player) {
+    // Store previous grounded state
+    const wasGrounded = this.isGrounded;
     this.isGrounded = false;
     
     // Call base update for physics and collisions
     super.update(delta, platforms, player);
     
-    // ADD: Check player collision
+    // Check player collision
     if (player) {
       this.checkPlayerCollision(player);
     }
     
     // Jump logic
     if (this.isGrounded) {
+      // Stop horizontal movement when landed
+      if (!wasGrounded) {
+        this.velocityX = 0;
+        
+        // Check if we should change direction
+        if (this.x > this.startX + this.maxJumpDistance) {
+          this.jumpDirection = -1; // Jump left next
+        } else if (this.x < this.startX - this.maxJumpDistance) {
+          this.jumpDirection = 1; // Jump right next
+        }
+      }
+      
       this.jumpTimer += delta;
       
       // Pre-jump squish animation
@@ -410,10 +429,16 @@ export class JumperEnemy extends Enemy {
       
       // Time to jump!
       if (this.jumpTimer >= this.jumpInterval) {
-        this.velocityY = -16;
+        // Jump up with horizontal movement
+        this.velocityY = this.jumpForce;
+        this.velocityX = this.jumpSpeed * this.jumpDirection;
+        this.facingRight = this.jumpDirection > 0;
         this.jumpTimer = 0;
         this.squishAmount = 0;
       }
+    } else {
+      // Apply slight air resistance to horizontal movement for more realistic arc
+      this.velocityX *= 0.99;
     }
   }
 
@@ -443,13 +468,20 @@ export class JumperEnemy extends Enemy {
     // Jump effect - stretch when moving up, squish when moving down
     if (!this.isGrounded) {
       if (this.velocityY < 0) {
-        // Stretching upward while jumping
+        // Stretching upward while jumping (also lean in direction of movement)
+        const leanOffset = this.velocityX * 2;
+        ctx.save();
+        ctx.translate(this.x - camera.x + this.width / 2, this.y - camera.y + this.height / 2);
+        ctx.rotate(leanOffset * 0.02); // Slight rotation based on horizontal velocity
+        ctx.translate(-(this.x - camera.x + this.width / 2), -(this.y - camera.y + this.height / 2));
+        
         ctx.fillRect(
           this.x - camera.x + 4, 
           this.y - camera.y - 4, 
           this.width - 8, 
           this.height + 4
         );
+        ctx.restore();
       } else {
         // Squishing when falling
         ctx.fillRect(
@@ -472,8 +504,69 @@ export class JumperEnemy extends Enemy {
     // Draw eyes
     ctx.fillStyle = 'white';
     const eyeSpacing = 10;
-    ctx.fillRect(this.x - camera.x + (this.width / 2) - eyeSpacing - 2, this.y - camera.y + 10, 4, 4);
-    ctx.fillRect(this.x - camera.x + (this.width / 2) + eyeSpacing - 2, this.y - camera.y + 10, 4, 4);
+    const eyeY = this.isGrounded && this.squishAmount > 0 ? 
+      this.y - camera.y + 6 : // Eyes lower when squished
+      this.y - camera.y + 10;
+    
+    // Left eye
+    ctx.fillRect(
+      this.x - camera.x + (this.width / 2) - eyeSpacing - 2, 
+      eyeY, 
+      4, 
+      4
+    );
+    
+    // Right eye
+    ctx.fillRect(
+      this.x - camera.x + (this.width / 2) + eyeSpacing - 2, 
+      eyeY, 
+      4, 
+      4
+    );
+    
+    // Draw pupils that look in jump direction
+    ctx.fillStyle = 'black';
+    const pupilOffset = this.facingRight ? 1 : -1;
+    
+    // Left pupil
+    ctx.fillRect(
+      this.x - camera.x + (this.width / 2) - eyeSpacing - 2 + pupilOffset, 
+      eyeY + 1, 
+      2, 
+      2
+    );
+    
+    // Right pupil
+    ctx.fillRect(
+      this.x - camera.x + (this.width / 2) + eyeSpacing - 2 + pupilOffset, 
+      eyeY + 1, 
+      2, 
+      2
+    );
+    
+    // Draw jump arc preview when charging (optional visual indicator)
+    if (this.isGrounded && this.jumpTimer > this.jumpInterval * 0.5) {
+      ctx.strokeStyle = 'rgba(156, 39, 176, 0.3)'; // Transparent purple
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      
+      // Draw a simple arc preview
+      const previewSteps = 10;
+      for (let i = 0; i <= previewSteps; i++) {
+        const t = i / previewSteps;
+        const previewX = this.x + (this.jumpSpeed * this.jumpDirection * 60 * t);
+        const previewY = this.y + (this.jumpForce * 60 * t) + (0.5 * 60 * 60 * t * t * 0.0003);
+        
+        if (i === 0) {
+          ctx.moveTo(previewX - camera.x + this.width / 2, previewY - camera.y);
+        } else {
+          ctx.lineTo(previewX - camera.x + this.width / 2, previewY - camera.y);
+        }
+      }
+      
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     
     // Reset alpha
     ctx.globalAlpha = 1;
