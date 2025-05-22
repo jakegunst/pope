@@ -375,7 +375,7 @@ export class WalkingShooterEnemy extends Enemy {
   // For now, this would be enough to make the import work
 }
 
-// Enemy that jumps up periodically
+// Fixed JumperEnemy class with player collision
 export class JumperEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 28, 36);
@@ -390,6 +390,11 @@ export class JumperEnemy extends Enemy {
     
     // Call base update for physics and collisions
     super.update(delta, platforms, player);
+    
+    // ADD: Check player collision
+    if (player) {
+      this.checkPlayerCollision(player);
+    }
     
     // Jump logic
     if (this.isGrounded) {
@@ -702,7 +707,7 @@ export class FlyerEnemy extends Enemy {
   }
 }
 
-// Stationary enemy that shoots projectiles
+// Fixed ShooterEnemy class with proper physics
 export class ShooterEnemy extends Enemy {
   constructor(x, y) {
     super(x, y, 36, 36);
@@ -718,6 +723,16 @@ export class ShooterEnemy extends Enemy {
     if (this.hurtTimer > 0) {
       this.hurtTimer -= delta;
     }
+    
+    // ADD: Basic physics for stationary enemy
+    this.isGrounded = false;
+    
+    // Apply gravity
+    this.velocityY += 0.5;
+    this.y += this.velocityY;
+    
+    // Check platform collisions
+    this.checkPlatformCollisions(platforms);
     
     // Face the player
     if (player) {
@@ -1574,8 +1589,134 @@ export class RangedAttackEnemy extends Enemy {
       
       if (this.burstCount >= this.burstTotal) {
         this.isBursting = false;
+
       }
     }
+    draw(ctx, camera) {
+    if (!this.isActive) return;
+    
+    // Skip drawing if off-screen
+    if (this.x + this.width < camera.x || this.x > camera.x + camera.width ||
+        this.y + this.height < camera.y || this.y > camera.y + camera.height) {
+      return;
+    }
+
+    // Flashing effect when hurt
+    if (this.hurtTimer > 0 && Math.floor(this.hurtTimer / 100) % 2 === 0) {
+      ctx.globalAlpha = 0.5;
+    }
+    
+    // Draw alert/charging indicator
+    if (this.alertLevel > 0) {
+      const glowSize = 10 + this.alertLevel * 10;
+      const gradient = ctx.createRadialGradient(
+        this.x - camera.x + this.width / 2,
+        this.y - camera.y + this.height / 2,
+        0,
+        this.x - camera.x + this.width / 2,
+        this.y - camera.y + this.height / 2,
+        glowSize
+      );
+      gradient.addColorStop(0, `rgba(205, 220, 57, ${this.alertLevel * 0.5})`);
+      gradient.addColorStop(1, 'rgba(205, 220, 57, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(
+        this.x - camera.x - glowSize,
+        this.y - camera.y - glowSize,
+        this.width + glowSize * 2,
+        this.height + glowSize * 2
+      );
+    }
+
+    // Draw enemy body
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(
+      this.x - camera.x + this.width / 2,
+      this.y - camera.y + this.height / 2,
+      this.width / 2,
+      0, Math.PI * 2
+    );
+    ctx.fill();
+    
+    // Draw inner circle
+    ctx.fillStyle = '#689F38';
+    ctx.beginPath();
+    ctx.arc(
+      this.x - camera.x + this.width / 2,
+      this.y - camera.y + this.height / 2,
+      this.width / 3,
+      0, Math.PI * 2
+    );
+    ctx.fill();
+    
+    // Draw eyes
+    ctx.fillStyle = 'white';
+    const eyeX = this.facingRight ? 
+      this.x - camera.x + this.width * 0.65 : 
+      this.x - camera.x + this.width * 0.35;
+    ctx.beginPath();
+    ctx.arc(eyeX, this.y - camera.y + this.height * 0.4, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw burst indicator
+    if (this.isBursting) {
+      ctx.strokeStyle = '#CDDC39';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(
+        this.x - camera.x + this.width / 2,
+        this.y - camera.y + this.height / 2,
+        this.width / 2 + 5,
+        0, Math.PI * 2 * (this.burstCount / this.burstTotal)
+      );
+      ctx.stroke();
+    }
+    
+    // Draw projectiles
+    for (const p of this.projectiles) {
+      // Projectile glow
+      ctx.fillStyle = `rgba(205, 220, 57, ${1 - p.age / 200})`;
+      ctx.beginPath();
+      ctx.arc(
+        p.x - camera.x + p.width / 2,
+        p.y - camera.y + p.height / 2,
+        p.width,
+        0, Math.PI * 2
+      );
+      ctx.fill();
+      
+      // Projectile core
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(
+        p.x - camera.x + p.width / 2,
+        p.y - camera.y + p.height / 2,
+        p.width / 2,
+        0, Math.PI * 2
+      );
+      ctx.fill();
+    }
+    
+    // Draw health bar if damaged
+    if (this.health < 2) {
+      const barWidth = this.width;
+      const barHeight = 4;
+      const barY = this.y - camera.y - 10;
+      
+      // Background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(this.x - camera.x, barY, barWidth, barHeight);
+      
+      // Health
+      ctx.fillStyle = '#4CAF50';
+      ctx.fillRect(this.x - camera.x, barY, barWidth * (this.health / 2), barHeight);
+    }
+    
+    // Reset alpha
+    ctx.globalAlpha = 1;
+  }
+}
   }
   
   shootProjectile(player) {
