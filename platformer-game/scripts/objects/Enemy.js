@@ -1538,6 +1538,12 @@ export class RangedAttackEnemy extends Enemy {
       this.hurtTimer -= delta;
     }
     
+    // Basic physics
+    this.isGrounded = false;
+    this.velocityY += 0.5;
+    this.y += this.velocityY;
+    this.checkPlatformCollisions(platforms);
+    
     // Face the player
     if (player) {
       this.facingRight = player.x > this.x;
@@ -1589,10 +1595,95 @@ export class RangedAttackEnemy extends Enemy {
       
       if (this.burstCount >= this.burstTotal) {
         this.isBursting = false;
-
       }
     }
-    draw(ctx, camera) {
+  }
+  
+  shootProjectile(player) {
+    // Calculate angle to player with spread
+    const centerX = this.x + this.width / 2;
+    const centerY = this.y + this.height / 2;
+    const playerCenterX = player.x + player.width / 2;
+    const playerCenterY = player.y + player.height / 2;
+    
+    const dx = playerCenterX - centerX;
+    const dy = playerCenterY - centerY;
+    const baseAngle = Math.atan2(dy, dx);
+    
+    // Add some spread based on burst count
+    const spread = (this.burstCount - 1) * 0.2;
+    const angle = baseAngle + (spread - (this.burstCount > 1 ? 0.2 : 0));
+    
+    const speed = 6;
+    const velocityX = Math.cos(angle) * speed;
+    const velocityY = Math.sin(angle) * speed;
+    
+    this.projectiles.push({
+      x: centerX - 5,
+      y: centerY - 5,
+      width: 10,
+      height: 10,
+      velocityX: velocityX,
+      velocityY: velocityY,
+      color: '#CDDC39', // Lime
+      age: 0,
+      damage: 1
+    });
+  }
+  
+  updateProjectiles(platforms, player) {
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const projectile = this.projectiles[i];
+      
+      // Move projectile
+      projectile.x += projectile.velocityX;
+      projectile.y += projectile.velocityY;
+      
+      // Increase age
+      projectile.age += 1;
+      
+      // Check if out of bounds or too old
+      if (projectile.x < -100 || projectile.x > 5000 || 
+          projectile.y < -100 || projectile.y > 2000 || 
+          projectile.age > 200) {
+        this.projectiles.splice(i, 1);
+        continue;
+      }
+      
+      // Check collision with player
+      if (player && 
+          projectile.x + projectile.width > player.x &&
+          projectile.x < player.x + player.width &&
+          projectile.y + projectile.height > player.y &&
+          projectile.y < player.y + player.height) {
+        
+        if (player.invulnerableTimer <= 0) {
+          player.getHurt(projectile.damage);
+        }
+        
+        // Remove projectile
+        this.projectiles.splice(i, 1);
+        continue;
+      }
+      
+      // Check collision with platforms
+      for (const platform of platforms) {
+        if (projectile.x + projectile.width > platform.x &&
+            projectile.x < platform.x + platform.width &&
+            projectile.y + projectile.height > platform.y &&
+            projectile.y < platform.y + platform.height) {
+          
+          // Create impact effect (placeholder)
+          
+          // Remove projectile
+          this.projectiles.splice(i, 1);
+          break;
+        }
+      }
+    }
+  }
+  
+  draw(ctx, camera) {
     if (!this.isActive) return;
     
     // Skip drawing if off-screen
@@ -1716,6 +1807,7 @@ export class RangedAttackEnemy extends Enemy {
     // Reset alpha
     ctx.globalAlpha = 1;
   }
+}
 }
   }
   
