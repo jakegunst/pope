@@ -9,7 +9,6 @@
 <body>
     <div class="game-container">
         <canvas id="game-canvas"></canvas>
-
         <div id="game-menu">
             <h1 id="game-title">Platformer Game</h1>
             <button id="start-button">Start Game</button>
@@ -17,7 +16,6 @@
                 Controls: Arrow Keys or WASD to move, Space or Up to jump
             </div>
         </div>
-
         <div id="game-ui">
             <div id="score">Score: 0</div>
             <div id="lives">Lives: 3</div>
@@ -25,9 +23,12 @@
             <div id="level-name"></div>
         </div>
     </div>
-
-    <!-- Main game script -->
-    <script type="module" src="./scripts/levels/peru-level.js"></script>
-    <script type="module" src="./scripts/engine/game.js"></script>
+    
+    <!-- Option 1: If NOT using ES6 modules (simpler approach) -->
+    <script src="./scripts/levels/peru-level.js"></script>
+    <script src="./scripts/engine/game.js"></script>
+    
+    <!-- Option 2: If using ES6 modules, only load the main game script -->
+    <!-- <script type="module" src="./scripts/engine/game.js"></script> -->
 </body>
 </html>
