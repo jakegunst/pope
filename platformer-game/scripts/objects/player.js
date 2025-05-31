@@ -1086,4 +1086,4 @@ class Player {
 }
 
 // Export the Player class
-export default Player;
+export { Player };
