@@ -1,51 +1,10 @@
-Peru Level CSV to JavaScript Converter
-Peru - Peru.csv
-Select your Peru.csv file
-
-Level Statistics:
-Dimensions: 410 × 180 tiles
-
-Content Area: (0, 0) to (409, 179)
-
-Player Start: (2, 178)
-
-Level Exit: (27, 174)
-
-Entity Counts:
-
-( ): 179
-Spikes (K): 72
-D (D): 13
-Exit (E): 25
-Collectible/Coin (C): 28
-Platform (passable from below) (T): 171
-Ground (G): 131
-W (W): 16
-A (A): 16
-Leaf (Power-up) (L): 24
-R (R): 23
-Platform (not passable from below) (P): 143
-Moving platform (moves down) (M): 21
-F (F): 7
-Y (Y): 7
-Slope (S): 15
-Player Start (X): 3
-Bottomless pit (kills player) (B): 383
-Tile Legend:
-K: Spikes
-E: Exit
-C: Collectible/Coin
-T: Platform (passable from below)
-G: Ground
-L: Leaf (Power-up)
-P: Platform (not passable from below)
-M: Moving platform (moves down)
-S: Slope
-X: Player Start
-B: Bottomless pit (kills player)
-Generate Compact Format Generate Full Format Download Level.js
-Level Preview:
-// Peru Level - Full Format
+const PeruLevel = {
+  name: 'Peru',
+  width: 400,
+  height: 180,
+  tileSize: 32, // or whatever your game uses
+  data: [
+    // ... your level data array from the converter
 const PeruLevelData = [
   "                                                                                                                                                                                                                                                                                                                                                                                                               
 ",
@@ -413,4 +372,12 @@ const PeruLevelMeta = {
   width: 410,
   height: 180,
   playerStart: { x: 2, y: 178 }
+};
+
+  ],
+  playerStart: { x: 1 * 32, y: 177 * 32 },
+  enemies: {
+    walkers: [], // populated during parsing
+    flyers: []   // populated during parsing
+  }
 };
