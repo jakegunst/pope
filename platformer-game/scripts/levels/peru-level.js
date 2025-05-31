@@ -193,8 +193,4 @@ const PeruLevel = {
 };
 
 // Export for use in the game
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = PeruLevel;
-} else {
-  window.PeruLevel = PeruLevel;
-}
+export { PeruLevel };
