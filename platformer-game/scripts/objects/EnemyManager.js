@@ -169,4 +169,4 @@ class EnemyManager {
   }
 }
 
-export default EnemyManager;
+export { EnemyManager };
