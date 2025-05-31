@@ -277,4 +277,4 @@ class Platform {
 }
 
 // Export the Platform class as the default export
-export default Platform;
+export { Platform };
