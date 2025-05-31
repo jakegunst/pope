@@ -3,16 +3,14 @@ import * as Utils from './utils.js';
 import { keys } from './input.js';
 
 // Import game objects and demo level
-import Player from '../objects/player.js';
-import Platform from '../objects/platform.js';
-import Bouncer from '../objects/bouncer.js';
-import EnemyManager from '../objects/EnemyManager.js';
-import demoLevel from '../levels/demo-level.js';
-import jungleTempleLevel from '../levels/jungle-temple-level.js';
-import chicagoStreetLevel from '../levels/chicago-street-level.js';
-import chicagoNeighborhoodLevel from '../levels/chicago-neighborhood-level.js';
-import vaticanConclaveLevel from '../levels/vatican-conclave-level.js';
+import { Bouncer } from '../objects/bouncer.js';
+import { EnemyManager } from '../objects/EnemyManager.js';
+import { demoLevel } from '../levels/demo-level.js';
 import { PeruLevel } from '../levels/peru-level.js';
+import { Player } from '../objects/player.js';
+import { Enemy } from '../objects/Enemy.js';
+import { EnemyManager } from '../objects/EnemyManager.js';
+import { Platform } from '../objects/platform.js';
 
 // Your existing game code follows...
 
