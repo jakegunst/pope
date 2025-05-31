@@ -1901,3 +1901,4 @@ export class RangedAttackEnemy extends Enemy {
     ctx.globalAlpha = 1;
   }
 }
+export { Enemy };
