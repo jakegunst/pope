@@ -160,7 +160,7 @@ function loadLevel(levelData) {
     // Initialize player at level's starting position
     const startPos = levelData.playerStart || { x: 100, y: 300 };
     player = new Player(startPos.x, startPos.y);
-    
+    window.player = player;
     // Clear existing objects
     platforms = [];
     bouncers = [];
@@ -300,6 +300,7 @@ function loadLevel(levelData) {
 function loadDefaultLevel() {
     // Initialize player
     player = new Player(100, 300);
+    window.player = player;  // Add this line
     
     // Create platforms for the level
     platforms = [
