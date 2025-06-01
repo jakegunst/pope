@@ -553,25 +553,26 @@ window.addEventListener('keydown', (e) => {
                 console.log("Loading Peru level");
                 break;
                 
-            case '1': // Jungle Temple
-                loadLevel(jungleTempleLevel);
-                console.log("Loading Jungle Temple level");
-                break;
+// commenting out other levels until they are built
+            // case '1': // Jungle Temple
+                // loadLevel(jungleTempleLevel);
+                // console.log("Loading Jungle Temple level");
+                // break;
                 
-            case '2': // Chicago Streets
-                loadLevel(chicagoStreetLevel);
-                console.log("Loading Chicago Streets level");
-                break;
+            // case '2': // Chicago Streets
+                // loadLevel(chicagoStreetLevel);
+                // console.log("Loading Chicago Streets level");
+                // break;
                 
-            case '3': // Chicago Neighborhood
-                loadLevel(chicagoNeighborhoodLevel);
-                console.log("Loading Chicago Neighborhood level");
-                break;
+            // case '3': // Chicago Neighborhood
+                // loadLevel(chicagoNeighborhoodLevel);
+                // console.log("Loading Chicago Neighborhood level");
+                // break;
                 
-            case '4': // Vatican Conclave
-                loadLevel(vaticanConclaveLevel);
-                console.log("Loading Vatican Conclave level");
-                break;
+            // case '4': // Vatican Conclave
+                // loadLevel(vaticanConclaveLevel);
+                // console.log("Loading Vatican Conclave level");
+                // break;
                 
             case '0': // Return to default level
                 loadDefaultLevel();
