@@ -3,7 +3,7 @@ import * as Utils from './utils.js';
 import { keys } from './input.js';
 
 // Import game objects - FIXED: removed duplicates and corrected Bouncer import
-import Bouncer from '../objects/bouncer.js';
+import { Bouncer } from '../objects/bouncer.js';
 import { EnemyManager } from '../objects/EnemyManager.js';
 import { CollectibleManager } from '../objects/CollectibleManager.js';
 import { PowerupSystem } from '../objects/PowerupSystem.js';
