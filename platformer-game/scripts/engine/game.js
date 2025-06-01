@@ -5,9 +5,9 @@ import { parseLevel } from '../levels/levelLoader.js';
 
 // Import game objects and demo level
 import { Bouncer } from '../objects/bouncer.js';
-import { demoLevel } from '../levels/demo-level.js';
 import { PeruLevel } from '../levels/peru-level.js';
 // Commenting out the other levels for the time being. I will return to this later when adding other levels
+// import { demoLevel } from '../levels/demo-level.js';
 // import { jungleTempleLevel } from '../levels/jungle-temple-level.js';
 // import { chicagoStreetLevel } from '../levels/chicago-street-level.js';
 // import { chicagoNeighborhoodLevel } from '../levels/chicago-neighborhood-level.js';
