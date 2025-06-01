@@ -7,10 +7,11 @@ import { parseLevel } from '../levels/levelLoader.js';
 import { Bouncer } from '../objects/bouncer.js';
 import { demoLevel } from '../levels/demo-level.js';
 import { PeruLevel } from '../levels/peru-level.js';
-import { jungleTempleLevel } from '../levels/jungle-temple-level.js';
-import { chicagoStreetLevel } from '../levels/chicago-street-level.js';
-import { chicagoNeighborhoodLevel } from '../levels/chicago-neighborhood-level.js';
-import { vaticanConclaveLevel } from '../levels/vatican-conclave-level.js';
+// Commenting out the other levels for the time being. I will return to this later when adding other levels
+// import { jungleTempleLevel } from '../levels/jungle-temple-level.js';
+// import { chicagoStreetLevel } from '../levels/chicago-street-level.js';
+// import { chicagoNeighborhoodLevel } from '../levels/chicago-neighborhood-level.js';
+// import { vaticanConclaveLevel } from '../levels/vatican-conclave-level.js';
 import { Player } from '../objects/player.js';
 import { Enemy } from '../objects/Enemy.js';
 import { EnemyManager } from '../objects/EnemyManager.js';
