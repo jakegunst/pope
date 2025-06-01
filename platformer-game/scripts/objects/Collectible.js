@@ -192,31 +192,9 @@ export class Collectible {
   }
   
   applyPowerup(player) {
-    // Override in subclasses or implement powerup system
-    switch (this.powerupType) {
-      case 'speed':
-        player.maxSpeed = player.maxSpeed * 1.5;
-        // Set timer to remove effect later
-        setTimeout(() => {
-          player.maxSpeed = player.maxSpeed / 1.5;
-        }, 5000); // 5 seconds
-        break;
-        
-      case 'jump':
-        player.jumpForce = player.jumpForce * 1.3;
-        setTimeout(() => {
-          player.jumpForce = player.jumpForce / 1.3;
-        }, 5000);
-        break;
-        
-      case 'invincibility':
-        player.invulnerableTimer = 5000; // 5 seconds
-        break;
-        
-      case 'health':
-        player.health = Math.min(player.health + 1, player.maxHealth);
-        break;
-    }
+    // This will be handled by PowerupSystem in the game
+    // The powerupType is passed to the PowerupSystem
+    console.log(`Collected powerup: ${this.powerupType}`);
   }
   
   createCollectionParticles() {
