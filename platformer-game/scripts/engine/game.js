@@ -23,7 +23,7 @@ let canvas, ctx;
 let gameRunning = false;
 let score = 0;
 let lives = 3;
-let keys = 0; // Track collected keys
+let collectedKeys = 0; // Track collected keys - renamed to avoid conflict
 
 // Game objects
 let player;
@@ -200,7 +200,7 @@ function loadLevel(levelData) {
     
     // Reset score, keys, and powerups for new level
     score = 0;
-    keys = 0;
+    collectedKeys = 0;
     powerupSystem.clearAllPowerups(player);
     
     // Update UI with level name
@@ -329,7 +329,7 @@ function loadDefaultLevel() {
     
     // Reset score and keys
     score = 0;
-    keys = 0;
+    collectedKeys = 0;
     
     // Clear level name
     document.getElementById('level-name').textContent = '';
@@ -363,8 +363,8 @@ const game = {
     },
     
     addKey: function() {
-        keys++;
-        console.log(`Keys: ${keys}`);
+        collectedKeys++;
+        console.log(`Keys: ${collectedKeys}`);
     },
     
     powerupSystem: null // Will be set to the actual powerupSystem
@@ -504,7 +504,7 @@ function updateUI() {
         collectiblesDisplay.id = 'collectibles';
         document.getElementById('game-ui').appendChild(collectiblesDisplay);
     }
-    collectiblesDisplay.textContent = `Coins: ${coinsCollected} | Keys: ${keys} | Items: ${activeCollectibles}`;
+    collectiblesDisplay.textContent = `Coins: ${coinsCollected} | Keys: ${collectedKeys} | Items: ${activeCollectibles}`;
     
     // Debug info
     if (player) {
