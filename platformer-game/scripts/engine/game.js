@@ -33,6 +33,7 @@ let lives = 3;
 
 // Game objects
 let player;
+window.player = player; // Add this line
 let platforms = [];
 let bouncers = []; // Array for bouncers
 let enemyManager; // Enemy manager instance
