@@ -1,6 +1,7 @@
-// Updated game.js with integrated enemy system
+// Updated game.js with integrated enemy system and tile parsing
 import * as Utils from './utils.js';
 import { keys } from './input.js';
+import { parseLevel } from '../levels/levelLoader.js';
 
 // Import game objects and demo level
 import { Bouncer } from '../objects/bouncer.js';
@@ -98,6 +99,7 @@ function createLevelSelectUI(container) {
     levelInfo.innerHTML = `
         <strong>Level Select:</strong><br>
         L - Toggle Demo Level<br>
+        P - Peru Level<br>
         1 - Jungle Temple<br>
         2 - Chicago Streets<br>
         3 - Chicago Neighborhood<br>
@@ -157,42 +159,118 @@ function loadLevel(levelData) {
     const startPos = levelData.playerStart || { x: 100, y: 300 };
     player = new Player(startPos.x, startPos.y);
     
-    // Load platforms
+    // Clear existing objects
     platforms = [];
-    if (levelData.platforms) {
-        levelData.platforms.forEach(platformData => {
-            // Create platform based on type
-            const platform = new Platform(
-                platformData.x, 
-                platformData.y, 
-                platformData.width, 
-                platformData.height, 
-                platformData.type || 'normal', 
-                platformData
-            );
-            platforms.push(platform);
-        });
-    }
-    
-    // Load bouncers
     bouncers = [];
-    if (levelData.bouncers) {
-        levelData.bouncers.forEach(bouncerData => {
-            const bouncer = new Bouncer(
-                bouncerData.x,
-                bouncerData.y,
-                bouncerData.width,
-                bouncerData.height,
-                bouncerData.bounceForce || -15
-            );
-            bouncers.push(bouncer);
-        });
-    }
-    
-    // Load enemies
     enemyManager.clearEnemies();
-    if (levelData.enemies) {
-        enemyManager.createEnemiesFromLevel(levelData);
+    
+    // Check if this is a tile-based level
+    if (levelData.data && levelData.tileSize) {
+        console.log("Loading tile-based level:", levelData.name);
+        
+        // Parse the tile-based level
+        const parsed = parseLevel(levelData);
+        
+        // Convert tiles to platforms with optimization for continuous platforms
+        for (let y = 0; y < parsed.tiles.length; y++) {
+            let platformStart = -1;
+            
+            for (let x = 0; x < parsed.tiles[y].length; x++) {
+                if (parsed.tiles[y][x] === 1) {
+                    if (platformStart === -1) {
+                        platformStart = x;
+                    }
+                } else {
+                    // End of platform
+                    if (platformStart !== -1) {
+                        const platformWidth = (x - platformStart) * levelData.tileSize;
+                        platforms.push(new Platform(
+                            platformStart * levelData.tileSize,
+                            y * levelData.tileSize,
+                            platformWidth,
+                            levelData.tileSize,
+                            'ground'
+                        ));
+                        platformStart = -1;
+                    }
+                }
+            }
+            
+            // Handle platform that extends to the end of the row
+            if (platformStart !== -1) {
+                const platformWidth = (parsed.tiles[y].length - platformStart) * levelData.tileSize;
+                platforms.push(new Platform(
+                    platformStart * levelData.tileSize,
+                    y * levelData.tileSize,
+                    platformWidth,
+                    levelData.tileSize,
+                    'ground'
+                ));
+            }
+        }
+        
+        // Add pass-through platforms
+        parsed.platforms.forEach(platform => {
+            platforms.push(new Platform(
+                platform.x,
+                platform.y,
+                platform.width,
+                platform.height,
+                platform.type || 'one-way'
+            ));
+        });
+        
+        // Add enemies
+        parsed.enemies.forEach(enemy => {
+            enemyManager.createEnemy(enemy.type, enemy.x, enemy.y);
+        });
+        
+        // Add collectibles (coins) - for future implementation
+        if (parsed.collectibles) {
+            console.log(`Level has ${parsed.collectibles.length} collectibles`);
+        }
+        
+        // Add hazards (spikes) - for future implementation
+        if (parsed.hazards) {
+            console.log(`Level has ${parsed.hazards.length} hazards`);
+        }
+        
+        console.log(`Loaded ${platforms.length} platforms and ${parsed.enemies.length} enemies`);
+    } else {
+        // Standard level format with explicit platforms
+        if (levelData.platforms) {
+            levelData.platforms.forEach(platformData => {
+                // Create platform based on type
+                const platform = new Platform(
+                    platformData.x, 
+                    platformData.y, 
+                    platformData.width, 
+                    platformData.height, 
+                    platformData.type || 'normal', 
+                    platformData
+                );
+                platforms.push(platform);
+            });
+        }
+        
+        // Load bouncers
+        if (levelData.bouncers) {
+            levelData.bouncers.forEach(bouncerData => {
+                const bouncer = new Bouncer(
+                    bouncerData.x,
+                    bouncerData.y,
+                    bouncerData.width,
+                    bouncerData.height,
+                    bouncerData.bounceForce || -15
+                );
+                bouncers.push(bouncer);
+            });
+        }
+        
+        // Load enemies
+        if (levelData.enemies) {
+            enemyManager.createEnemiesFromLevel(levelData);
+        }
     }
     
     // Reset camera
@@ -467,6 +545,11 @@ window.addEventListener('keydown', (e) => {
                 } else {
                     loadDefaultLevel();
                 }
+                break;
+                
+            case 'p': // Peru level
+                loadLevel(PeruLevel);
+                console.log("Loading Peru level");
                 break;
                 
             case '1': // Jungle Temple
