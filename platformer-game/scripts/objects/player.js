@@ -1,4 +1,4 @@
-// Player class with corrected slope edge physics
+// Player class with corrected slope edge physics and powerup support
 import { keys } from '../engine/input.js';
 
 class Player {
@@ -8,21 +8,6 @@ class Player {
     this.y = y;
     this.width = 32;
     this.height = 48;
-
-    // Powerup-related properties (ADD THESE)
-    this.isInvincible = false;
-    this.magnetRadius = 0; // Radius for coin attraction
-    this.hasShield = false;
-    this.shieldHits = 0;
-    this.scale = 1; // For size-changing powerups
-    this.canBreakBlocks = false; // For giant mode
-    this.maxJumps = 2; // Default double jump
-    this.jumpsRemaining = 0;
-    
-    // Visual effect properties for powerups
-    this.powerupGlow = null;
-    this.shieldAngle = 0;
-  }
     
     // Physics properties - adjusted for better feel
     this.velocityX = 0;
@@ -84,9 +69,6 @@ class Player {
     this.wallJumpPushForce = 8; // Horizontal push when wall jumping
     this.wallJumpCooldown = 0; // Cooldown timer to prevent multiple wall jumps
     this.maxWallJumpCooldown = 10; // Frames of cooldown
-    // Add these properties to your Player class constructor:
-
-// In the Player constructor, add:
     
     // Powerup-related properties
     this.isInvincible = false;
@@ -101,198 +83,6 @@ class Player {
     // Visual effect properties for powerups
     this.powerupGlow = null;
     this.shieldAngle = 0;
-
-// Add this method to the Player class:
-  
-  // Override the getHurt method to check for shield
-  getHurt(damage) {
-    // Check for invincibility
-    if (this.isInvincible || this.invulnerableTimer > 0) {
-      return false;
-    }
-    
-    // Check for shield
-    if (this.hasShield && this.shieldHits > 0) {
-      this.shieldHits--;
-      
-      // Create shield impact effect
-      this.createShieldImpactEffect();
-      
-      // Remove shield if no hits left
-      if (this.shieldHits <= 0) {
-        this.hasShield = false;
-      }
-      
-      // Brief invulnerability after shield hit
-      this.invulnerableTimer = 500;
-      
-      return false; // Damage blocked by shield
-    }
-    
-    // Apply damage normally
-    this.health -= damage;
-    this.invulnerableTimer = this.maxInvulnerableTime;
-    this.velocityX = this.knockbackForce * -this.direction;
-    this.velocityY = -5;
-    this.isDamaged = true;
-    this.createHurtParticles();
-    
-    if (this.health <= 0) {
-      this.die();
-    }
-    
-    return true;
-  }
-  
-  // Add shield impact effect
-  createShieldImpactEffect() {
-    const particleCount = 10;
-    
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (Math.PI * 2 / particleCount) * i;
-      
-      this.particles.push({
-        x: this.x + this.width / 2,
-        y: this.y + this.height / 2,
-        vx: Math.cos(angle) * 3,
-        vy: Math.sin(angle) * 3,
-        color: '#4169E1',
-        alpha: 1,
-        size: 4
-      });
-    }
-  }
-
-// Update the jump method to support multiple jumps:
-  
-  jump() {
-    if (!this.jumpKeyReleased) {
-      return;
-    }
-    
-    // Wall jump logic (keep existing)
-    if (this.isTouchingWall && !this.isGrounded && this.wallJumpCooldown <= 0) {
-      this.velocityY = this.wallJumpForce;
-      this.velocityX = this.wallJumpPushForce * -this.wallDirection;
-      this.isJumping = true;
-      this.jumpKeyReleased = false;
-      this.jumpsRemaining = this.maxJumps - 1; // Reset jumps after wall jump
-      this.wallJumpCooldown = this.maxWallJumpCooldown;
-      this.createWallJumpParticles();
-      return;
-    }
-    
-    // Ground jump
-    if (this.isGrounded || this.coyoteTimeCounter > 0) {
-      this.velocityY = this.jumpForce;
-      this.isJumping = true;
-      this.isGrounded = false;
-      this.coyoteTimeCounter = 0;
-      this.jumpsRemaining = this.maxJumps - 1; // Use one jump
-      this.jumpKeyReleased = false;
-    } 
-    // Air jumps
-    else if (this.jumpsRemaining > 0) {
-      this.velocityY = this.jumpForce * (0.9 - (0.1 * (this.maxJumps - this.jumpsRemaining))); // Each jump slightly weaker
-      this.jumpsRemaining--;
-      this.jumpKeyReleased = false;
-      
-      // Flip animation for air jumps
-      this.isFlipping = true;
-      this.flipAngle = 0;
-      this.flipDirection = this.direction;
-      this.createDoubleJumpParticles();
-    }
-  }
-
-// Update the draw method to include powerup visuals:
-  
-  drawPowerupEffects(ctx) {
-    // Shield visual
-    if (this.hasShield) {
-      this.shieldAngle += 0.05;
-      
-      ctx.strokeStyle = '#4169E1';
-      ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.5 + Math.sin(this.shieldAngle) * 0.2;
-      
-      // Draw shield bubble
-      ctx.beginPath();
-      ctx.ellipse(
-        this.x + this.width / 2,
-        this.y + this.height / 2,
-        this.width * 0.7,
-        this.height * 0.6,
-        0, 0, Math.PI * 2
-      );
-      ctx.stroke();
-      
-      // Draw shield hit indicators
-      for (let i = 0; i < this.shieldHits; i++) {
-        const angle = (Math.PI * 2 / 3) * i + this.shieldAngle;
-        const x = this.x + this.width / 2 + Math.cos(angle) * this.width * 0.6;
-        const y = this.y + this.height / 2 + Math.sin(angle) * this.height * 0.5;
-        
-        ctx.fillStyle = '#4169E1';
-        ctx.globalAlpha = 0.8;
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      ctx.globalAlpha = 1;
-    }
-    
-    // Invincibility glow
-    if (this.isInvincible) {
-      const glowSize = 5 + Math.sin(Date.now() * 0.01) * 3;
-      const gradient = ctx.createRadialGradient(
-        this.x + this.width / 2,
-        this.y + this.height / 2,
-        0,
-        this.x + this.width / 2,
-        this.y + this.height / 2,
-        this.width
-      );
-      gradient.addColorStop(0, 'rgba(255, 215, 0, 0.5)');
-      gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
-      
-      ctx.fillStyle = gradient;
-      ctx.fillRect(
-        this.x - glowSize,
-        this.y - glowSize,
-        this.width + glowSize * 2,
-        this.height + glowSize * 2
-      );
-    }
-    
-    // Magnet field visual
-    if (this.magnetRadius > 0) {
-      ctx.strokeStyle = '#FFB300';
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.3;
-      ctx.setLineDash([5, 5]);
-      
-      ctx.beginPath();
-      ctx.arc(
-        this.x + this.width / 2,
-        this.y + this.height / 2,
-        this.magnetRadius,
-        0, Math.PI * 2
-      );
-      ctx.stroke();
-      
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
-    }
-  }
-
-// In the main draw method, add this before ctx.restore():
-  this.drawPowerupEffects(ctx);
-
-// Update the update method to reset jumps when grounded:
-  // In the checkCollisions method, when setting isGrounded = true:
-  this.jumpsRemaining = this.maxJumps;
   }
 
   update(platforms, bouncers = []) {
@@ -417,6 +207,11 @@ class Player {
         this.particles.splice(i, 1);
       }
     }
+    
+    // Update shield angle for animation
+    if (this.hasShield) {
+      this.shieldAngle += 0.05;
+    }
   }
 
   moveLeft() {
@@ -446,7 +241,7 @@ class Player {
       this.velocityX = this.wallJumpPushForce * -this.wallDirection; // Push away from wall
       this.isJumping = true;
       this.jumpKeyReleased = false;
-      this.canDoubleJump = true; // Enable double jump after wall jump
+      this.jumpsRemaining = this.maxJumps - 1; // Reset jumps after wall jump
       this.wallJumpCooldown = this.maxWallJumpCooldown; // Set cooldown
       
       // Create wall jump effect particles
@@ -454,21 +249,24 @@ class Player {
       return;
     }
     
+    // Ground jump
     if (this.isGrounded || this.coyoteTimeCounter > 0) {
       // Normal jump from ground
       this.velocityY = this.jumpForce;
       this.isJumping = true;
       this.isGrounded = false;
       this.coyoteTimeCounter = 0; // Reset coyote time
-      this.canDoubleJump = true; // Enable double jump after first jump
+      this.jumpsRemaining = this.maxJumps - 1; // Use one jump
       this.jumpKeyReleased = false; // Mark jump key as pressed
-    } else if (this.canDoubleJump) {
-      // Double jump in mid-air with flip animation
-      this.velocityY = this.jumpForce * 0.8; // Slightly weaker second jump
-      this.canDoubleJump = false; // Used up double jump
-      this.jumpKeyReleased = false; // Mark jump key as pressed
+    } 
+    // Air jumps
+    else if (this.jumpsRemaining > 0) {
+      // Air jump with slightly reduced power for each subsequent jump
+      this.velocityY = this.jumpForce * (0.9 - (0.1 * (this.maxJumps - this.jumpsRemaining)));
+      this.jumpsRemaining--;
+      this.jumpKeyReleased = false;
       
-      // Start flip animation
+      // Start flip animation for air jumps
       this.isFlipping = true;
       this.flipAngle = 0;
       this.flipDirection = this.direction; // Flip in the direction of movement
@@ -483,33 +281,42 @@ class Player {
    * @param {number} damage - Amount of damage to apply
    */
   getHurt(damage) {
-    // Only take damage if not currently invulnerable
-    if (this.invulnerableTimer <= 0) {
-      // Apply damage
-      this.health -= damage;
-      
-      // Set invulnerability timer
-      this.invulnerableTimer = this.maxInvulnerableTime;
-      
-      // Apply knockback in opposite direction from facing
-      this.velocityX = this.knockbackForce * -this.direction;
-      this.velocityY = -5; // Small upward bounce
-      
-      // Set damaged state for visual effect
-      this.isDamaged = true;
-      
-      // Create hurt particles
-      this.createHurtParticles();
-      
-      // Check if player died
-      if (this.health <= 0) {
-        this.die();
-      }
-      
-      return true; // Successfully hurt
+    // Check for invincibility
+    if (this.isInvincible || this.invulnerableTimer > 0) {
+      return false;
     }
     
-    return false; // Not hurt (invulnerable)
+    // Check for shield
+    if (this.hasShield && this.shieldHits > 0) {
+      this.shieldHits--;
+      
+      // Create shield impact effect
+      this.createShieldImpactEffect();
+      
+      // Remove shield if no hits left
+      if (this.shieldHits <= 0) {
+        this.hasShield = false;
+      }
+      
+      // Brief invulnerability after shield hit
+      this.invulnerableTimer = 500;
+      
+      return false; // Damage blocked by shield
+    }
+    
+    // Apply damage normally
+    this.health -= damage;
+    this.invulnerableTimer = this.maxInvulnerableTime;
+    this.velocityX = this.knockbackForce * -this.direction;
+    this.velocityY = -5;
+    this.isDamaged = true;
+    this.createHurtParticles();
+    
+    if (this.health <= 0) {
+      this.die();
+    }
+    
+    return true;
   }
 
   /**
@@ -597,6 +404,25 @@ class Player {
         color: `hsl(${Math.random() * 60 + 40}, 100%, 70%)`, // Yellow/orange colors
         alpha: 1,
         size: Math.random() * 4 + 2
+      });
+    }
+  }
+  
+  // Shield impact effect
+  createShieldImpactEffect() {
+    const particleCount = 10;
+    
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 / particleCount) * i;
+      
+      this.particles.push({
+        x: this.x + this.width / 2,
+        y: this.y + this.height / 2,
+        vx: Math.cos(angle) * 3,
+        vy: Math.sin(angle) * 3,
+        color: '#4169E1',
+        alpha: 1,
+        size: 4
       });
     }
   }
@@ -768,6 +594,9 @@ class Player {
             activeSlope = platform;
             this.activePlatform = platform;
             
+            // Reset jumps when grounded
+            this.jumpsRemaining = this.maxJumps;
+            
             // Apply slight Y velocity when on slope to stick to it
             if (Math.abs(this.velocityX) > 0.5) {
               // Calculate slope angle factor (higher angle = higher push down)
@@ -796,6 +625,9 @@ class Player {
             this.slopeAngle = platform.angle * (platform.direction === 'right' ? 1 : -1);
             activeSlope = platform;
             this.activePlatform = platform;
+            
+            // Reset jumps when grounded
+            this.jumpsRemaining = this.maxJumps;
             
             // If the slope is a moving platform, track it for player movement
             if (platform.isMoving) {
@@ -869,6 +701,7 @@ class Player {
       if (isOnGround) {
         this.isGrounded = true;
         this.canDoubleJump = false; // Reset double jump when on ground
+        this.jumpsRemaining = this.maxJumps; // Reset jumps when grounded
       }
       
       // Predictive collision detection for high speeds
@@ -915,6 +748,7 @@ class Player {
             this.isGrounded = true;
             this.isJumping = false;
             this.canDoubleJump = false; // Reset double jump
+            this.jumpsRemaining = this.maxJumps; // Reset jumps
             this.activePlatform = platform;
             
             // If it's a moving platform, track it
@@ -967,6 +801,7 @@ class Player {
             this.isGrounded = true;
             this.isJumping = false;
             this.canDoubleJump = false; // Reset double jump
+            this.jumpsRemaining = this.maxJumps; // Reset jumps
             this.activePlatform = platform;
             
             // If it's a moving platform, track it
@@ -1081,6 +916,7 @@ class Player {
       this.isGrounded = true;
       this.isJumping = false;
       this.canDoubleJump = false; // Reset double jump when on ground
+      this.jumpsRemaining = this.maxJumps; // Reset jumps
     }
     
     // Falling off edge detection - allow jump grace period
@@ -1113,10 +949,98 @@ class Player {
       }
     }
   }
+  
+  // Draw powerup effects
+  drawPowerupEffects(ctx) {
+    // Shield visual
+    if (this.hasShield) {
+      ctx.strokeStyle = '#4169E1';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.5 + Math.sin(this.shieldAngle) * 0.2;
+      
+      // Draw shield bubble
+      ctx.beginPath();
+      ctx.ellipse(
+        this.x + this.width / 2,
+        this.y + this.height / 2,
+        this.width * 0.7,
+        this.height * 0.6,
+        0, 0, Math.PI * 2
+      );
+      ctx.stroke();
+      
+      // Draw shield hit indicators
+      for (let i = 0; i < this.shieldHits; i++) {
+        const angle = (Math.PI * 2 / 3) * i + this.shieldAngle;
+        const x = this.x + this.width / 2 + Math.cos(angle) * this.width * 0.6;
+        const y = this.y + this.height / 2 + Math.sin(angle) * this.height * 0.5;
+        
+        ctx.fillStyle = '#4169E1';
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      ctx.globalAlpha = 1;
+    }
+    
+    // Invincibility glow
+    if (this.isInvincible) {
+      const glowSize = 5 + Math.sin(Date.now() * 0.01) * 3;
+      const gradient = ctx.createRadialGradient(
+        this.x + this.width / 2,
+        this.y + this.height / 2,
+        0,
+        this.x + this.width / 2,
+        this.y + this.height / 2,
+        this.width
+      );
+      gradient.addColorStop(0, 'rgba(255, 215, 0, 0.5)');
+      gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(
+        this.x - glowSize,
+        this.y - glowSize,
+        this.width + glowSize * 2,
+        this.height + glowSize * 2
+      );
+    }
+    
+    // Magnet field visual
+    if (this.magnetRadius > 0) {
+      ctx.strokeStyle = '#FFB300';
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.3;
+      ctx.setLineDash([5, 5]);
+      
+      ctx.beginPath();
+      ctx.arc(
+        this.x + this.width / 2,
+        this.y + this.height / 2,
+        this.magnetRadius,
+        0, Math.PI * 2
+      );
+      ctx.stroke();
+      
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+  }
 
   draw(ctx) {
     // Save the canvas state before transformations
     ctx.save();
+    
+    // Apply scale transformation if size is changed
+    if (this.scale !== 1) {
+      const centerX = this.x + this.width / 2;
+      const centerY = this.y + this.height / 2;
+      ctx.translate(centerX, centerY);
+      ctx.scale(this.scale, this.scale);
+      ctx.translate(-centerX, -centerY);
+    }
     
     // Flashing effect during invulnerability
     if (this.invulnerableTimer > 0) {
@@ -1124,6 +1048,9 @@ class Player {
         ctx.globalAlpha = 0.5; // Blink by changing opacity
       }
     }
+    
+    // Draw powerup effects behind player
+    this.drawPowerupEffects(ctx);
     
     if (this.isFlipping) {
       // Calculate the center of the player for rotation
@@ -1244,6 +1171,14 @@ class Player {
         ctx.fillStyle = 'pink';
         ctx.beginPath();
         ctx.arc(this.x + this.width / 2, this.y + 15, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Visual indicator for remaining jumps
+      ctx.fillStyle = 'cyan';
+      for (let i = 0; i < this.jumpsRemaining; i++) {
+        ctx.beginPath();
+        ctx.arc(this.x + 5 + i * 8, this.y - 5, 2, 0, Math.PI * 2);
         ctx.fill();
       }
     }
