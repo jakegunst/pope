@@ -4,7 +4,6 @@ import { keys } from './input.js';
 
 // Import game objects and demo level
 import { Bouncer } from '../objects/bouncer.js';
-import { EnemyManager } from '../objects/EnemyManager.js';
 import { demoLevel } from '../levels/demo-level.js';
 import { PeruLevel } from '../levels/peru-level.js';
 import { Player } from '../objects/player.js';
