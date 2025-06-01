@@ -75,3 +75,6 @@ function parseLevel(levelData) {
   
   return { tiles, enemies, platforms, hazards, collectibles };
 }
+
+// Export the function
+export { parseLevel };
