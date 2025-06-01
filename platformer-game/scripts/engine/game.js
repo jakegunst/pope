@@ -1,24 +1,15 @@
-// Updated game.js with integrated enemy system and tile parsing
+// Updated game.js with integrated collectible system and bug fixes
 import * as Utils from './utils.js';
 import { keys } from './input.js';
-import { parseLevel } from '../levels/levelLoader.js';
 
-// Import game objects and demo level
-import Bouncer from '../objects/bouncer.js'; // Remove { } since it's default export
-// Remove duplicate imports of Player and EnemyManager
-import { PeruLevel } from '../levels/peru-level.js';
-// Commenting out the other levels for the time being. I will return to this later when adding other levels
-// import { demoLevel } from '../levels/demo-level.js';
-// import { jungleTempleLevel } from '../levels/jungle-temple-level.js';
-// import { chicagoStreetLevel } from '../levels/chicago-street-level.js';
-// import { chicagoNeighborhoodLevel } from '../levels/chicago-neighborhood-level.js';
-// import { vaticanConclaveLevel } from '../levels/vatican-conclave-level.js';
-import { Player } from '../objects/player.js';
-import { Enemy } from '../objects/Enemy.js';
+// Import game objects - FIXED: removed duplicates and corrected Bouncer import
+import Bouncer from '../objects/bouncer.js';
 import { EnemyManager } from '../objects/EnemyManager.js';
+import { CollectibleManager } from '../objects/CollectibleManager.js';
+import demoLevel from '../levels/demo-level.js';
+import { PeruLevel } from '../levels/peru-level.js';
+import { Player } from '../objects/player.js';
 import { Platform } from '../objects/platform.js';
-
-// Your existing game code follows...
 
 // Game constants
 const CANVAS_WIDTH = 800;
@@ -31,30 +22,26 @@ let canvas, ctx;
 let gameRunning = false;
 let score = 0;
 let lives = 3;
+let keys = 0; // Track collected keys
 
 // Game objects
 let player;
-// Add this to make debugging easier:
-Object.defineProperty(window, 'player', {
-    get: () => player,
-    set: (val) => { player = val; }
-});
-
 let platforms = [];
-let bouncers = []; // Array for bouncers
-let enemyManager; // Enemy manager instance
+let bouncers = [];
+let enemyManager;
+let collectibleManager;
 let camera = { 
     x: 0, 
     y: 0, 
     width: CANVAS_WIDTH, 
     height: CANVAS_HEIGHT,
-    prevX: 0, // Keep track of previous position for delta calculations
+    prevX: 0,
     prevY: 0
-}; // Camera for scrolling
+};
 
 // Current level
 let currentLevel = null;
-let useCustomLevel = false; // Set to true to use the demo level
+let useCustomLevel = false;
 
 // Initialize the game
 function init() {
@@ -66,7 +53,7 @@ function init() {
     canvas.height = CANVAS_HEIGHT;
     ctx = canvas.getContext('2d');
     
-    // Set up input - using our local implementation
+    // Set up input
     setupInputListeners();
     
     // Set up event listeners
@@ -75,8 +62,9 @@ function init() {
     // Hide game UI initially
     document.getElementById('game-ui').style.display = 'none';
     
-    // Initialize enemy manager
+    // Initialize managers
     enemyManager = new EnemyManager();
+    collectibleManager = new CollectibleManager();
     
     // Add level select UI after DOM is ready
     setTimeout(() => {
@@ -87,7 +75,7 @@ function init() {
     }, 100);
 }
 
-// Optional: Add a level select menu
+// Create level select UI
 function createLevelSelectUI(container) {
     const levelInfo = document.createElement('div');
     levelInfo.id = 'level-info';
@@ -107,11 +95,7 @@ function createLevelSelectUI(container) {
     levelInfo.innerHTML = `
         <strong>Level Select:</strong><br>
         L - Toggle Demo Level<br>
-        P - Peru Level<br>
-        1 - Jungle Temple<br>
-        2 - Chicago Streets<br>
-        3 - Chicago Neighborhood<br>
-        4 - Vatican Conclave<br>
+        P - Peru Level (Tile-based)<br>
         0 - Default Level
     `;
     container.appendChild(levelInfo);
@@ -122,7 +106,7 @@ function setupInputListeners() {
     window.addEventListener('keydown', (e) => {
         keys[e.key] = true;
         
-        // Handle jump key presses in the keydown event
+        // Handle jump key presses
         if (player && (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ')) {
             player.jump();
         }
@@ -131,7 +115,7 @@ function setupInputListeners() {
     window.addEventListener('keyup', (e) => {
         keys[e.key] = false;
         
-        // Handle jump key releases to enable repeated jumps
+        // Handle jump key releases
         if (player && (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ')) {
             player.releaseJumpKey();
         }
@@ -146,13 +130,8 @@ function startGame() {
     document.getElementById('game-menu').style.display = 'none';
     document.getElementById('game-ui').style.display = 'block';
     
-    if (useCustomLevel) {
-        // Load demo level
-        loadLevel(demoLevel);
-    } else {
-        // Load default level
-        loadDefaultLevel();
-    }
+    // Load default level
+    loadDefaultLevel();
     
     // Start game loop
     gameRunning = true;
@@ -166,119 +145,48 @@ function loadLevel(levelData) {
     // Initialize player at level's starting position
     const startPos = levelData.playerStart || { x: 100, y: 300 };
     player = new Player(startPos.x, startPos.y);
-    window.player = player;
-    // Clear existing objects
-    platforms = [];
-    bouncers = [];
-    enemyManager.clearEnemies();
     
-    // Check if this is a tile-based level
-    if (levelData.data && levelData.tileSize) {
-        console.log("Loading tile-based level:", levelData.name);
-        
-        // Parse the tile-based level
-        const parsed = parseLevel(levelData);
-        
-        // Convert tiles to platforms with optimization for continuous platforms
-        for (let y = 0; y < parsed.tiles.length; y++) {
-            let platformStart = -1;
-            
-            for (let x = 0; x < parsed.tiles[y].length; x++) {
-                if (parsed.tiles[y][x] === 1) {
-                    if (platformStart === -1) {
-                        platformStart = x;
-                    }
-                } else {
-                    // End of platform
-                    if (platformStart !== -1) {
-                        const platformWidth = (x - platformStart) * levelData.tileSize;
-                        platforms.push(new Platform(
-                            platformStart * levelData.tileSize,
-                            y * levelData.tileSize,
-                            platformWidth,
-                            levelData.tileSize,
-                            'ground'
-                        ));
-                        platformStart = -1;
-                    }
-                }
-            }
-            
-            // Handle platform that extends to the end of the row
-            if (platformStart !== -1) {
-                const platformWidth = (parsed.tiles[y].length - platformStart) * levelData.tileSize;
-                platforms.push(new Platform(
-                    platformStart * levelData.tileSize,
-                    y * levelData.tileSize,
-                    platformWidth,
-                    levelData.tileSize,
-                    'ground'
-                ));
-            }
-        }
-        
-        // Add pass-through platforms
-        parsed.platforms.forEach(platform => {
-            platforms.push(new Platform(
-                platform.x,
-                platform.y,
-                platform.width,
-                platform.height,
-                platform.type || 'one-way'
-            ));
+    // Load platforms
+    platforms = [];
+    if (levelData.platforms) {
+        levelData.platforms.forEach(platformData => {
+            const platform = new Platform(
+                platformData.x, 
+                platformData.y, 
+                platformData.width, 
+                platformData.height, 
+                platformData.type || 'normal', 
+                platformData
+            );
+            platforms.push(platform);
         });
-        
-        // Add enemies
-        parsed.enemies.forEach(enemy => {
-            enemyManager.createEnemy(enemy.type, enemy.x, enemy.y);
+    }
+    
+    // Load bouncers
+    bouncers = [];
+    if (levelData.bouncers) {
+        levelData.bouncers.forEach(bouncerData => {
+            const bouncer = new Bouncer(
+                bouncerData.x,
+                bouncerData.y,
+                bouncerData.width,
+                bouncerData.height,
+                bouncerData.bounceForce || -15
+            );
+            bouncers.push(bouncer);
         });
-        
-        // Add collectibles (coins) - for future implementation
-        if (parsed.collectibles) {
-            console.log(`Level has ${parsed.collectibles.length} collectibles`);
-        }
-        
-        // Add hazards (spikes) - for future implementation
-        if (parsed.hazards) {
-            console.log(`Level has ${parsed.hazards.length} hazards`);
-        }
-        
-        console.log(`Loaded ${platforms.length} platforms and ${parsed.enemies.length} enemies`);
-    } else {
-        // Standard level format with explicit platforms
-        if (levelData.platforms) {
-            levelData.platforms.forEach(platformData => {
-                // Create platform based on type
-                const platform = new Platform(
-                    platformData.x, 
-                    platformData.y, 
-                    platformData.width, 
-                    platformData.height, 
-                    platformData.type || 'normal', 
-                    platformData
-                );
-                platforms.push(platform);
-            });
-        }
-        
-        // Load bouncers
-        if (levelData.bouncers) {
-            levelData.bouncers.forEach(bouncerData => {
-                const bouncer = new Bouncer(
-                    bouncerData.x,
-                    bouncerData.y,
-                    bouncerData.width,
-                    bouncerData.height,
-                    bouncerData.bounceForce || -15
-                );
-                bouncers.push(bouncer);
-            });
-        }
-        
-        // Load enemies
-        if (levelData.enemies) {
-            enemyManager.createEnemiesFromLevel(levelData);
-        }
+    }
+    
+    // Load enemies
+    enemyManager.clearEnemies();
+    if (levelData.enemies) {
+        enemyManager.createEnemiesFromLevel(levelData);
+    }
+    
+    // Load collectibles
+    collectibleManager.clearCollectibles();
+    if (levelData.collectibles) {
+        collectibleManager.createCollectiblesFromLevel(levelData);
     }
     
     // Reset camera
@@ -287,16 +195,9 @@ function loadLevel(levelData) {
     camera.prevX = 0;
     camera.prevY = 0;
     
-    // Handle special level features
-    if (levelData.powerups) {
-        // Initialize powerups (you'll need to create a powerup system)
-        console.log("Level has special powerups:", levelData.powerups);
-    }
-    
-    if (levelData.theme) {
-        // Apply visual theme (future feature)
-        console.log("Level theme:", levelData.theme);
-    }
+    // Reset score and keys for new level
+    score = 0;
+    keys = 0;
     
     // Update UI with level name
     document.getElementById('level-name').textContent = levelData.name || '';
@@ -306,62 +207,54 @@ function loadLevel(levelData) {
 function loadDefaultLevel() {
     // Initialize player
     player = new Player(100, 300);
-    window.player = player;  // Add this line
     
     // Create platforms for the level
     platforms = [
-        // Ground - full width brown platform at the bottom
+        // Ground
         new Platform(0, CANVAS_HEIGHT - 40, CANVAS_WIDTH, 40, 'ground'),
         
-        // Regular platforms - green
-        new Platform(100, 450, 200, 20),  // Lower left platform
-        new Platform(400, 450, 200, 20),  // Lower right platform
+        // Regular platforms
+        new Platform(100, 450, 200, 20),
+        new Platform(400, 450, 200, 20),
         
-        // One-way platforms - blue with dashed line on top
-        new Platform(200, 350, 150, 15, 'one-way'),  // Middle left one-way platform
-        new Platform(500, 350, 150, 15, 'one-way'),  // Middle right one-way platform
+        // One-way platforms
+        new Platform(200, 350, 150, 15, 'one-way'),
+        new Platform(500, 350, 150, 15, 'one-way'),
         
-        // Regular platform - green
-        new Platform(300, 250, 200, 20),  // Upper middle platform
+        // Upper platforms
+        new Platform(300, 250, 200, 20),
+        new Platform(100, 150, 120, 15, 'one-way'),
+        new Platform(580, 150, 120, 15, 'one-way'),
         
-        // More one-way platforms - blue
-        new Platform(100, 150, 120, 15, 'one-way'),  // Upper left one-way platform
-        new Platform(580, 150, 120, 15, 'one-way'),  // Upper right one-way platform
-        
-        // Slopes - orange triangles
+        // Slopes
         new Platform(50, 500, 100, 50, 'slope', { angle: 25, direction: 'right' }),
         new Platform(650, 500, 100, 50, 'slope', { angle: 25, direction: 'left' }),
         new Platform(300, 400, 100, 50, 'slope', { angle: 35, direction: 'right' }),
         new Platform(450, 200, 80, 80, 'slope', { angle: 45, direction: 'left' }),
         
-        // Moving Platforms - pink with directional arrows
-        
-        // Horizontal moving platform
+        // Moving Platforms
         new Platform(300, 120, 120, 15, 'moving', { 
-            moveX: 150, // Move horizontally 150 pixels
-            moveY: 0,  // Don't move vertically
-            moveSpeed: 0.8, // Speed multiplier
-            moveTiming: 'sine' // Smooth sine movement
+            moveX: 150,
+            moveY: 0,
+            moveSpeed: 0.8,
+            moveTiming: 'sine'
         }),
         
-        // Vertical moving platform - smoother movement
         new Platform(40, 250, 80, 15, 'moving', {
-            moveX: 0,  // Don't move horizontally
-            moveY: 100, // Reduced movement range
-            moveSpeed: 0.5, // Reduced speed
-            moveTiming: 'sine' // Smoother movement
+            moveX: 0,
+            moveY: 100,
+            moveSpeed: 0.5,
+            moveTiming: 'sine'
         }),
         
-        // Circular/diagonal moving platform
         new Platform(550, 280, 80, 15, 'moving', {
-            moveX: 100, // Move horizontally
-            moveY: 60,  // And vertically for diagonal motion
+            moveX: 100,
+            moveY: 60,
             moveSpeed: 0.5,
             moveTiming: 'sine',
-            movePhase: 0.5 // Start at different point in the movement cycle
+            movePhase: 0.5
         }),
         
-        // Moving slope platform
         new Platform(450, 380, 80, 40, 'slope', {
             angle: 30,
             direction: 'right',
@@ -372,20 +265,53 @@ function loadDefaultLevel() {
         }),
     ];
 
-    // Create bouncers - FIXED positioning and reduced bounce force
+    // Create bouncers
     bouncers = [
-        // Parameters: x, y, width, height, bounceForce (reduced from default -20)
-        new Bouncer(150, 520, 80, 15, -13), // Lower left, smaller bounce
-        new Bouncer(570, 520, 80, 15, -15), // Lower right, medium bounce
-        new Bouncer(320, 230, 60, 15, -12), // Upper platform, smallest bounce
+        new Bouncer(150, 520, 80, 15, -13),
+        new Bouncer(570, 520, 80, 15, -15),
+        new Bouncer(320, 230, 60, 15, -12),
     ];
     
-    // Add some test enemies
+    // Add enemies
     enemyManager.clearEnemies();
     enemyManager.createEnemy('walker', 200, 400);
     enemyManager.createEnemy('jumper', 400, 400);
     enemyManager.createEnemy('flyer', 300, 200);
     enemyManager.createEnemy('flipper', 600, 400);
+    
+    // Create collectibles with various patterns
+    collectibleManager.clearCollectibles();
+    
+    // Line of coins on lower platforms
+    collectibleManager.createPattern('line', 120, 420);
+    collectibleManager.createPattern('line', 420, 420);
+    
+    // Arc over the middle platform
+    collectibleManager.createPattern('arc', 250, 300);
+    
+    // Powerups
+    collectibleManager.createCollectible('leaf', 350, 220, { powerupType: 'jump' });
+    collectibleManager.createCollectible('leaf', 110, 120, { powerupType: 'speed' });
+    
+    // Gems in hard-to-reach places
+    collectibleManager.createCollectible('gem', 640, 120);
+    collectibleManager.createCollectible('gem', 490, 170);
+    
+    // Circle pattern
+    collectibleManager.createPattern('circle', 200, 250);
+    
+    // Keys
+    collectibleManager.createCollectible('key', 590, 320);
+    
+    // Coins along slopes
+    for (let i = 0; i < 3; i++) {
+        collectibleManager.createCollectible('coin', 70 + i * 25, 480 - i * 10);
+        collectibleManager.createCollectible('coin', 680 + i * 25, 480 - i * 10);
+    }
+    
+    // Big coins as rewards
+    collectibleManager.createCollectible('bigcoin', 350, 90);
+    collectibleManager.createCollectible('bigcoin', 50, 220);
     
     // Reset camera
     camera.x = 0;
@@ -393,61 +319,83 @@ function loadDefaultLevel() {
     camera.prevX = 0;
     camera.prevY = 0;
     
+    // Reset score and keys
+    score = 0;
+    keys = 0;
+    
     // Clear level name
     document.getElementById('level-name').textContent = '';
 }
 
 // Update camera position to follow player
 function updateCamera() {
-    // Store previous camera position to calculate delta
     camera.prevX = camera.x;
     camera.prevY = camera.y;
     
-    // Only update camera for custom levels that are wider than the screen
+    // Only update camera for levels wider than screen
     if (!currentLevel || !currentLevel.width || currentLevel.width <= CANVAS_WIDTH) {
         return;
     }
     
-    // Center camera on player
+    // Center camera on player with some smoothing
     const targetX = player.x - CANVAS_WIDTH / 2;
     
+    // Smooth camera movement
+    camera.x += (targetX - camera.x) * 0.1;
+    
     // Clamp camera to level bounds
-    camera.x = Math.max(0, Math.min(targetX, currentLevel.width - CANVAS_WIDTH));
+    camera.x = Math.max(0, Math.min(camera.x, currentLevel.width - CANVAS_WIDTH));
 }
+
+// Game object for score and key management
+const game = {
+    addScore: function(points) {
+        score += points;
+        console.log(`Score: ${score} (+${points})`);
+    },
+    
+    addKey: function() {
+        keys++;
+        console.log(`Keys: ${keys}`);
+    }
+};
 
 // Main game loop
 function gameLoop() {
-    // Get current time for animations and cooldowns
     const currentTime = performance.now();
+    const deltaTime = 16; // Assuming 60fps
     
     // Clear canvas
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     
-    // Basic blue background
+    // Background
     ctx.fillStyle = '#87CEEB';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     
-    // Update camera to follow player
+    // Update camera
     updateCamera();
     
-    // Update all platforms (specifically moving ones)
+    // Update platforms
     platforms.forEach(platform => {
         if (platform.isMoving) {
             platform.update();
         }
     });
     
-    // Update all bouncers
+    // Update bouncers
     bouncers.forEach(bouncer => {
         bouncer.update(currentTime);
     });
     
-    // Update enemy logic - these updates happen in world space, before any camera translation
+    // Update enemies
     enemyManager.update(platforms, player);
     
-    // Update player with controls
+    // Update collectibles
+    collectibleManager.update(deltaTime, player, game);
+    
+    // Update player
     if (player) {
-        // Handle player movement input
+        // Handle input
         if (keys['ArrowLeft'] || keys['a']) {
             player.moveLeft();
         }
@@ -455,23 +403,16 @@ function gameLoop() {
             player.moveRight();
         }
         
-        // Update player physics
-        player.update(platforms);
-        
-        // Check bouncer collisions - pass current time to help debugging
-        player.checkCollisions(platforms, bouncers);
+        // Update physics
+        player.update(platforms, bouncers);
     }
     
-    // DRAWING - Apply camera transformation for all drawing operations
+    // DRAWING - Apply camera transformation
     ctx.save();
-
-
-    // Apply camera offset
     ctx.translate(-camera.x, -camera.y);
     
     // Draw platforms
     platforms.forEach(platform => {
-        // Only draw platforms if they're visible in the camera view
         if (platform.x + platform.width > camera.x && 
             platform.x < camera.x + CANVAS_WIDTH &&
             platform.y + platform.height > camera.y &&
@@ -480,9 +421,11 @@ function gameLoop() {
         }
     });
     
+    // Draw collectibles
+    collectibleManager.draw(ctx, camera);
+    
     // Draw bouncers
     bouncers.forEach(bouncer => {
-        // Only draw bouncers if they're visible in the camera view
         if (bouncer.x + bouncer.width > camera.x && 
             bouncer.x < camera.x + CANVAS_WIDTH &&
             bouncer.y + bouncer.height > camera.y &&
@@ -491,7 +434,7 @@ function gameLoop() {
         }
     });
     
-    // Draw enemies - This now happens inside the camera transformation context
+    // Draw enemies
     enemyManager.draw(ctx, camera);
     
     // Draw player
@@ -499,13 +442,13 @@ function gameLoop() {
         player.draw(ctx);
     }
     
-    // Restore context after camera transformation
+    // Restore context
     ctx.restore();
     
-    // Draw UI (not affected by camera)
+    // Draw UI
     updateUI();
     
-    // Continue loop if game is running
+    // Continue loop
     if (gameRunning) {
         requestAnimationFrame(gameLoop);
     }
@@ -513,13 +456,13 @@ function gameLoop() {
 
 // Update game UI
 function updateUI() {
-    // Update score display
+    // Update score
     document.getElementById('score').textContent = `Score: ${score}`;
     
-    // Update lives display
+    // Update lives
     if (player) {
         document.getElementById('lives').textContent = `Lives: ${player.health}`;
-        lives = player.health; // Sync lives with player health
+        lives = player.health;
     } else {
         document.getElementById('lives').textContent = `Lives: ${lives}`;
     }
@@ -527,14 +470,24 @@ function updateUI() {
     // Display enemy count
     document.getElementById('enemies').textContent = `Enemies: ${enemyManager.getEnemyCount()}`;
     
-    // Level name if using custom level
-    if (currentLevel && currentLevel.name) {
-        document.getElementById('level-name').textContent = currentLevel.name;
-    }
+    // Add collectibles info
+    const coinsCollected = collectibleManager.getCollectedCount('coin');
+    const totalCollected = collectibleManager.getCollectedCount();
+    const activeCollectibles = collectibleManager.getActiveCount();
     
-    // Debug info - shows useful stats at bottom of screen
+    // Create or update collectibles display
+    let collectiblesDisplay = document.getElementById('collectibles');
+    if (!collectiblesDisplay) {
+        collectiblesDisplay = document.createElement('div');
+        collectiblesDisplay.id = 'collectibles';
+        document.getElementById('game-ui').appendChild(collectiblesDisplay);
+    }
+    collectiblesDisplay.textContent = `Coins: ${coinsCollected} | Keys: ${keys} | Items: ${activeCollectibles}`;
+    
+    // Debug info
     if (player) {
-        const debugInfo = `Position: ${Math.round(player.x)}, ${Math.round(player.y)} | Velocity: ${player.velocityX.toFixed(2)}, ${player.velocityY.toFixed(2)} | Grounded: ${player.isGrounded} | Platform: ${player.activePlatform ? player.activePlatform.type : 'none'}${player.wasOnMovingPlatform ? ' (moving)' : ''}`;
+        const debugInfo = `Pos: ${Math.round(player.x)},${Math.round(player.y)} | Vel: ${player.velocityX.toFixed(1)},${player.velocityY.toFixed(1)} | Ground: ${player.isGrounded}`;
+        
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(10, CANVAS_HEIGHT - 30, CANVAS_WIDTH - 20, 20);
         ctx.fillStyle = 'white';
@@ -543,54 +496,26 @@ function updateUI() {
     }
 }
 
-// Key handler to toggle between levels
+// Key handler for level switching
 window.addEventListener('keydown', (e) => {
-    // Level switching keys
     if (gameRunning) {
         switch(e.key.toLowerCase()) {
-            case 'l': // Toggle between default and demo level
+            case 'l':
                 useCustomLevel = !useCustomLevel;
                 if (useCustomLevel) {
                     loadLevel(demoLevel);
                 } else {
                     loadDefaultLevel();
                 }
+                console.log(useCustomLevel ? "Loading Demo Level" : "Loading Default Level");
                 break;
                 
-            case 'p': // Peru level
-                loadLevel(PeruLevel);
-                console.log("Loading Peru level");
+            case 'p':
+                // Note: Peru level needs tile parsing implementation
+                console.log("Peru level requires tile parsing system (not yet implemented)");
                 break;
                 
-case 't': // Teleport player up
-    if (player) {
-        player.y -= 100;
-        console.log("Player moved to:", player.x, player.y);
-    }
-    break;
-
-// commenting out other levels until they are built
-            // case '1': // Jungle Temple
-                // loadLevel(jungleTempleLevel);
-                // console.log("Loading Jungle Temple level");
-                // break;
-                
-            // case '2': // Chicago Streets
-                // loadLevel(chicagoStreetLevel);
-                // console.log("Loading Chicago Streets level");
-                // break;
-                
-            // case '3': // Chicago Neighborhood
-                // loadLevel(chicagoNeighborhoodLevel);
-                // console.log("Loading Chicago Neighborhood level");
-                // break;
-                
-            // case '4': // Vatican Conclave
-                // loadLevel(vaticanConclaveLevel);
-                // console.log("Loading Vatican Conclave level");
-                // break;
-                
-            case '0': // Return to default level
+            case '0':
                 loadDefaultLevel();
                 console.log("Loading default level");
                 break;
@@ -598,8 +523,8 @@ case 't': // Teleport player up
     }
 });
 
-// Initialize the game when the page loads
+// Initialize when page loads
 window.addEventListener('load', init);
 
-// Export the constants if needed elsewhere
+// Export constants
 export { CANVAS_WIDTH, CANVAS_HEIGHT, GRAVITY, FRICTION };
