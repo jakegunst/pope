@@ -6,6 +6,7 @@ import { keys } from './input.js';
 import Bouncer from '../objects/bouncer.js';
 import { EnemyManager } from '../objects/EnemyManager.js';
 import { CollectibleManager } from '../objects/CollectibleManager.js';
+import { PowerupSystem } from '../objects/PowerupSystem.js';
 import demoLevel from '../levels/demo-level.js';
 import { PeruLevel } from '../levels/peru-level.js';
 import { Player } from '../objects/player.js';
@@ -30,6 +31,7 @@ let platforms = [];
 let bouncers = [];
 let enemyManager;
 let collectibleManager;
+let powerupSystem;
 let camera = { 
     x: 0, 
     y: 0, 
@@ -65,6 +67,7 @@ function init() {
     // Initialize managers
     enemyManager = new EnemyManager();
     collectibleManager = new CollectibleManager();
+    powerupSystem = new PowerupSystem();
     
     // Add level select UI after DOM is ready
     setTimeout(() => {
@@ -195,9 +198,10 @@ function loadLevel(levelData) {
     camera.prevX = 0;
     camera.prevY = 0;
     
-    // Reset score and keys for new level
+    // Reset score, keys, and powerups for new level
     score = 0;
     keys = 0;
+    powerupSystem.clearAllPowerups(player);
     
     // Update UI with level name
     document.getElementById('level-name').textContent = levelData.name || '';
@@ -289,9 +293,13 @@ function loadDefaultLevel() {
     // Arc over the middle platform
     collectibleManager.createPattern('arc', 250, 300);
     
-    // Powerups
+    // Powerups with different types
     collectibleManager.createCollectible('leaf', 350, 220, { powerupType: 'jump' });
     collectibleManager.createCollectible('leaf', 110, 120, { powerupType: 'speed' });
+    collectibleManager.createCollectible('leaf', 550, 480, { powerupType: 'invincibility' });
+    collectibleManager.createCollectible('leaf', 40, 220, { powerupType: 'magnetism' });
+    collectibleManager.createCollectible('leaf', 600, 250, { powerupType: 'shield' });
+    collectibleManager.createCollectible('leaf', 200, 100, { powerupType: 'doubleJump' });
     
     // Gems in hard-to-reach places
     collectibleManager.createCollectible('gem', 640, 120);
@@ -357,13 +365,18 @@ const game = {
     addKey: function() {
         keys++;
         console.log(`Keys: ${keys}`);
-    }
+    },
+    
+    powerupSystem: null // Will be set to the actual powerupSystem
 };
 
 // Main game loop
 function gameLoop() {
     const currentTime = performance.now();
     const deltaTime = 16; // Assuming 60fps
+    
+    // Set game powerup system reference
+    game.powerupSystem = powerupSystem;
     
     // Clear canvas
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -390,7 +403,10 @@ function gameLoop() {
     // Update enemies
     enemyManager.update(platforms, player);
     
-    // Update collectibles
+    // Update powerup system
+    powerupSystem.update(deltaTime, player);
+    
+    // Update collectibles (with powerup system integration)
     collectibleManager.update(deltaTime, player, game);
     
     // Update player
@@ -437,6 +453,9 @@ function gameLoop() {
     // Draw enemies
     enemyManager.draw(ctx, camera);
     
+    // Draw powerup effects (before player so effects appear behind)
+    powerupSystem.draw(ctx, camera);
+    
     // Draw player
     if (player) {
         player.draw(ctx);
@@ -445,8 +464,11 @@ function gameLoop() {
     // Restore context
     ctx.restore();
     
-    // Draw UI
+    // Draw UI (not affected by camera)
     updateUI();
+    
+    // Draw powerup UI
+    powerupSystem.drawUI(ctx, 10, 80);
     
     // Continue loop
     if (gameRunning) {
