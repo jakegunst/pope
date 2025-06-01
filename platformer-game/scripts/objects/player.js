@@ -8,6 +8,21 @@ class Player {
     this.y = y;
     this.width = 32;
     this.height = 48;
+
+    // Powerup-related properties (ADD THESE)
+    this.isInvincible = false;
+    this.magnetRadius = 0; // Radius for coin attraction
+    this.hasShield = false;
+    this.shieldHits = 0;
+    this.scale = 1; // For size-changing powerups
+    this.canBreakBlocks = false; // For giant mode
+    this.maxJumps = 2; // Default double jump
+    this.jumpsRemaining = 0;
+    
+    // Visual effect properties for powerups
+    this.powerupGlow = null;
+    this.shieldAngle = 0;
+  }
     
     // Physics properties - adjusted for better feel
     this.velocityX = 0;
