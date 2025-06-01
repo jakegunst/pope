@@ -4,7 +4,8 @@ import { keys } from './input.js';
 import { parseLevel } from '../levels/levelLoader.js';
 
 // Import game objects and demo level
-import { Bouncer } from '../objects/bouncer.js';
+import Bouncer from '../objects/bouncer.js'; // Remove { } since it's default export
+// Remove duplicate imports of Player and EnemyManager
 import { PeruLevel } from '../levels/peru-level.js';
 // Commenting out the other levels for the time being. I will return to this later when adding other levels
 // import { demoLevel } from '../levels/demo-level.js';
