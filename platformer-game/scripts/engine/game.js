@@ -33,7 +33,12 @@ let lives = 3;
 
 // Game objects
 let player;
-window.player = player; // Add this line
+// Add this to make debugging easier:
+Object.defineProperty(window, 'player', {
+    get: () => player,
+    set: (val) => { player = val; }
+});
+
 let platforms = [];
 let bouncers = []; // Array for bouncers
 let enemyManager; // Enemy manager instance
@@ -458,7 +463,8 @@ function gameLoop() {
     
     // DRAWING - Apply camera transformation for all drawing operations
     ctx.save();
-    
+
+
     // Apply camera offset
     ctx.translate(-camera.x, -camera.y);
     
@@ -555,6 +561,13 @@ window.addEventListener('keydown', (e) => {
                 console.log("Loading Peru level");
                 break;
                 
+case 't': // Teleport player up
+    if (player) {
+        player.y -= 100;
+        console.log("Player moved to:", player.x, player.y);
+    }
+    break;
+
 // commenting out other levels until they are built
             // case '1': // Jungle Temple
                 // loadLevel(jungleTempleLevel);
