@@ -1,7 +1,7 @@
 const PeruLevel = {
   name: 'Peru',
-  width: 400,
-  height: 180,
+  width: 400 * 32,  // This needs to be in pixels, not tiles!
+  height: 180 * 32, // This too!
   tileSize: 32,
   data: [
     "                                                                                                                                                                                                                                                                                                                                                                                                                ",
