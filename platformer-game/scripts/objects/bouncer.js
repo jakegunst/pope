@@ -180,4 +180,4 @@ class Bouncer {
 }
 
 // Export the Bouncer class
-export default Bouncer;
+export { Bouncer };
