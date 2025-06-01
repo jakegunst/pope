@@ -55,8 +55,29 @@ export class CollectibleManager {
       // Update collectible animation
       collectible.update(deltaTime);
       
+      // Coin magnetism effect
+      if (player.magnetRadius > 0 && 
+          (collectible.type === 'coin' || collectible.type === 'bigcoin' || collectible.type === 'gem')) {
+        
+        const dx = (player.x + player.width / 2) - (collectible.x + collectible.width / 2);
+        const dy = (player.y + player.height / 2) - (collectible.y + collectible.height / 2);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < player.magnetRadius && distance > 0) {
+          // Pull collectible toward player
+          const pullStrength = 5 * (1 - distance / player.magnetRadius);
+          collectible.x += (dx / distance) * pullStrength;
+          collectible.y += (dy / distance) * pullStrength;
+        }
+      }
+      
       // Check collision with player
       if (collectible.checkCollision(player)) {
+        // Special handling for powerups
+        if (collectible.type === 'leaf' && game.powerupSystem) {
+          game.powerupSystem.addPowerup(collectible.powerupType, player);
+        }
+        
         collectible.collect(player, game);
         this.collectedCount[collectible.type]++;
       }
