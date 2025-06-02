@@ -110,7 +110,13 @@ export class TileParser {
         
         // Process based on tile type
         if (tileDef.type === 'player-start') {
-          parsed.playerStart = { x: pixelX, y: pixelY };
+          // Only set player start if we haven't found one yet
+          if (!parsed.playerStart) {
+            parsed.playerStart = { x: pixelX, y: pixelY };
+            console.log("Player start found at:", pixelX, pixelY);
+          } else {
+            console.warn("Multiple player starts found! Ignoring at:", pixelX, pixelY);
+          }
         }
         else if (tileDef.solid || tileDef.oneWay) {
           // Create platform
