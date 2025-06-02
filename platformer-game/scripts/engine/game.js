@@ -663,6 +663,12 @@ window.addEventListener('keydown', (e) => {
                 console.log("Loading Peru level (tile-based)");
                 break;
                 
+            case 't':
+                // Load test tile level
+                loadLevel(testLevel);
+                console.log("Loading test tile level");
+                break;
+                
             case '0':
                 loadDefaultLevel();
                 console.log("Loading default level");
