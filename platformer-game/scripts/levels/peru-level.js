@@ -1,9 +1,8 @@
-const PeruLevel = {
-  name: 'Peru',
-  width: 400 * 32,  // This needs to be in pixels, not tiles!
-  height: 180 * 32, // This too!
-  tileSize: 32,
-  data: [
+import EnemyManager from "../objects/EnemyManager.js";
+import TileParser from "../objects/TileParser.js";
+
+// Full tilemap with embedded enemy markers (W = Walker, F = Flyer)
+const rawTilemap = [
   "................................................................................................................................................................................................................................................................................................................................................................................................................",
   "................................................................................................................................................................................................................................................................................................................................................................................................................",
   "................................................................................................................................................................................................................................................................................................................................................................................................................",
@@ -184,13 +183,28 @@ const PeruLevel = {
   "..................G.............................................................................................................................................................................................................................................................................................................................................................................................",
   ".................G..............................................................................................................................................................................................................................................................................................................................................................................................",
   "GGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
-],
-  playerStart: { x: 100, y: 5500 }, // Move up from current y: 5664
-  enemies: {
-    walkers: [], // populated during parsing
-    flyers: []   // populated during parsing
-  }
-};
+];
 
-// Export for use in the game
-export { PeruLevel };
+const TILE_SIZE = 32;
+
+// Step 1: Spawn enemies and clean the tilemap
+const cleanedTilemap = rawTilemap.map((row, rowIndex) => {
+  return row.split('').map((symbol, colIndex) => {
+    const x = colIndex * TILE_SIZE;
+    const y = rowIndex * TILE_SIZE;
+
+    switch (symbol) {
+      case 'W':
+        EnemyManager.spawn("walker", x, y);
+        return '.'; // Replace with passable terrain
+      case 'F':
+        EnemyManager.spawn("flyer", x, y);
+        return '.';
+      default:
+        return symbol;
+    }
+  }).join('');
+});
+
+// Step 2: Export parsed tilemap
+export default TileParser.parse(cleanedTilemap);
