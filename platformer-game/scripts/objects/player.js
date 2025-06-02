@@ -1,4 +1,4 @@
-// Player class with corrected slope edge physics and powerup support
+// Player class with corrected slope edge physics and level boundary support
 import { keys } from '../engine/input.js';
 
 class Player {
@@ -8,6 +8,10 @@ class Player {
     this.y = y;
     this.width = 32;
     this.height = 48;
+    
+    // Level boundaries (default to screen size)
+    this.levelWidth = 800;
+    this.levelHeight = 600;
     
     // Physics properties - adjusted for better feel
     this.velocityX = 0;
@@ -69,20 +73,12 @@ class Player {
     this.wallJumpPushForce = 8; // Horizontal push when wall jumping
     this.wallJumpCooldown = 0; // Cooldown timer to prevent multiple wall jumps
     this.maxWallJumpCooldown = 10; // Frames of cooldown
-    
-    // Powerup-related properties
-    this.isInvincible = false;
-    this.magnetRadius = 0; // Radius for coin attraction
-    this.hasShield = false;
-    this.shieldHits = 0;
-    this.scale = 1; // For size-changing powerups
-    this.canBreakBlocks = false; // For giant mode
-    this.maxJumps = 2; // Default double jump
-    this.jumpsRemaining = 0;
-    
-    // Visual effect properties for powerups
-    this.powerupGlow = null;
-    this.shieldAngle = 0;
+  }
+
+  // Method to set level boundaries
+  setLevelBounds(width, height) {
+    this.levelWidth = width || 800;
+    this.levelHeight = height || 600;
   }
 
   update(platforms, bouncers = []) {
@@ -207,11 +203,6 @@ class Player {
         this.particles.splice(i, 1);
       }
     }
-    
-    // Update shield angle for animation
-    if (this.hasShield) {
-      this.shieldAngle += 0.05;
-    }
   }
 
   moveLeft() {
@@ -241,7 +232,7 @@ class Player {
       this.velocityX = this.wallJumpPushForce * -this.wallDirection; // Push away from wall
       this.isJumping = true;
       this.jumpKeyReleased = false;
-      this.jumpsRemaining = this.maxJumps - 1; // Reset jumps after wall jump
+      this.canDoubleJump = true; // Enable double jump after wall jump
       this.wallJumpCooldown = this.maxWallJumpCooldown; // Set cooldown
       
       // Create wall jump effect particles
@@ -249,24 +240,21 @@ class Player {
       return;
     }
     
-    // Ground jump
     if (this.isGrounded || this.coyoteTimeCounter > 0) {
       // Normal jump from ground
       this.velocityY = this.jumpForce;
       this.isJumping = true;
       this.isGrounded = false;
       this.coyoteTimeCounter = 0; // Reset coyote time
-      this.jumpsRemaining = this.maxJumps - 1; // Use one jump
+      this.canDoubleJump = true; // Enable double jump after first jump
       this.jumpKeyReleased = false; // Mark jump key as pressed
-    } 
-    // Air jumps
-    else if (this.jumpsRemaining > 0) {
-      // Air jump with slightly reduced power for each subsequent jump
-      this.velocityY = this.jumpForce * (0.9 - (0.1 * (this.maxJumps - this.jumpsRemaining)));
-      this.jumpsRemaining--;
-      this.jumpKeyReleased = false;
+    } else if (this.canDoubleJump) {
+      // Double jump in mid-air with flip animation
+      this.velocityY = this.jumpForce * 0.8; // Slightly weaker second jump
+      this.canDoubleJump = false; // Used up double jump
+      this.jumpKeyReleased = false; // Mark jump key as pressed
       
-      // Start flip animation for air jumps
+      // Start flip animation
       this.isFlipping = true;
       this.flipAngle = 0;
       this.flipDirection = this.direction; // Flip in the direction of movement
@@ -281,42 +269,33 @@ class Player {
    * @param {number} damage - Amount of damage to apply
    */
   getHurt(damage) {
-    // Check for invincibility
-    if (this.isInvincible || this.invulnerableTimer > 0) {
-      return false;
-    }
-    
-    // Check for shield
-    if (this.hasShield && this.shieldHits > 0) {
-      this.shieldHits--;
+    // Only take damage if not currently invulnerable
+    if (this.invulnerableTimer <= 0) {
+      // Apply damage
+      this.health -= damage;
       
-      // Create shield impact effect
-      this.createShieldImpactEffect();
+      // Set invulnerability timer
+      this.invulnerableTimer = this.maxInvulnerableTime;
       
-      // Remove shield if no hits left
-      if (this.shieldHits <= 0) {
-        this.hasShield = false;
+      // Apply knockback in opposite direction from facing
+      this.velocityX = this.knockbackForce * -this.direction;
+      this.velocityY = -5; // Small upward bounce
+      
+      // Set damaged state for visual effect
+      this.isDamaged = true;
+      
+      // Create hurt particles
+      this.createHurtParticles();
+      
+      // Check if player died
+      if (this.health <= 0) {
+        this.die();
       }
       
-      // Brief invulnerability after shield hit
-      this.invulnerableTimer = 500;
-      
-      return false; // Damage blocked by shield
+      return true; // Successfully hurt
     }
     
-    // Apply damage normally
-    this.health -= damage;
-    this.invulnerableTimer = this.maxInvulnerableTime;
-    this.velocityX = this.knockbackForce * -this.direction;
-    this.velocityY = -5;
-    this.isDamaged = true;
-    this.createHurtParticles();
-    
-    if (this.health <= 0) {
-      this.die();
-    }
-    
-    return true;
+    return false; // Not hurt (invulnerable)
   }
 
   /**
@@ -404,25 +383,6 @@ class Player {
         color: `hsl(${Math.random() * 60 + 40}, 100%, 70%)`, // Yellow/orange colors
         alpha: 1,
         size: Math.random() * 4 + 2
-      });
-    }
-  }
-  
-  // Shield impact effect
-  createShieldImpactEffect() {
-    const particleCount = 10;
-    
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (Math.PI * 2 / particleCount) * i;
-      
-      this.particles.push({
-        x: this.x + this.width / 2,
-        y: this.y + this.height / 2,
-        vx: Math.cos(angle) * 3,
-        vy: Math.sin(angle) * 3,
-        color: '#4169E1',
-        alpha: 1,
-        size: 4
       });
     }
   }
@@ -594,9 +554,6 @@ class Player {
             activeSlope = platform;
             this.activePlatform = platform;
             
-            // Reset jumps when grounded
-            this.jumpsRemaining = this.maxJumps;
-            
             // Apply slight Y velocity when on slope to stick to it
             if (Math.abs(this.velocityX) > 0.5) {
               // Calculate slope angle factor (higher angle = higher push down)
@@ -625,9 +582,6 @@ class Player {
             this.slopeAngle = platform.angle * (platform.direction === 'right' ? 1 : -1);
             activeSlope = platform;
             this.activePlatform = platform;
-            
-            // Reset jumps when grounded
-            this.jumpsRemaining = this.maxJumps;
             
             // If the slope is a moving platform, track it for player movement
             if (platform.isMoving) {
@@ -701,7 +655,6 @@ class Player {
       if (isOnGround) {
         this.isGrounded = true;
         this.canDoubleJump = false; // Reset double jump when on ground
-        this.jumpsRemaining = this.maxJumps; // Reset jumps when grounded
       }
       
       // Predictive collision detection for high speeds
@@ -748,7 +701,6 @@ class Player {
             this.isGrounded = true;
             this.isJumping = false;
             this.canDoubleJump = false; // Reset double jump
-            this.jumpsRemaining = this.maxJumps; // Reset jumps
             this.activePlatform = platform;
             
             // If it's a moving platform, track it
@@ -801,7 +753,6 @@ class Player {
             this.isGrounded = true;
             this.isJumping = false;
             this.canDoubleJump = false; // Reset double jump
-            this.jumpsRemaining = this.maxJumps; // Reset jumps
             this.activePlatform = platform;
             
             // If it's a moving platform, track it
@@ -900,8 +851,9 @@ class Player {
       this.wallDirection = -1;
     }
     
-    if (this.x + this.width > 800) { // Using canvas width
-      this.x = 800 - this.width;
+    // Use level width instead of hardcoded 800
+    if (this.x + this.width > this.levelWidth) {
+      this.x = this.levelWidth - this.width;
       this.velocityX = 0;
       
       // Mark as touching right wall
@@ -909,14 +861,13 @@ class Player {
       this.wallDirection = 1;
     }
     
-    // Bottom boundary
-    if (this.y + this.height > 600) { // Using canvas height
-      this.y = 600 - this.height;
+    // Bottom boundary - use level height instead of hardcoded 600
+    if (this.y + this.height > this.levelHeight) {
+      this.y = this.levelHeight - this.height;
       this.velocityY = 0;
       this.isGrounded = true;
       this.isJumping = false;
       this.canDoubleJump = false; // Reset double jump when on ground
-      this.jumpsRemaining = this.maxJumps; // Reset jumps
     }
     
     // Falling off edge detection - allow jump grace period
@@ -949,98 +900,10 @@ class Player {
       }
     }
   }
-  
-  // Draw powerup effects
-  drawPowerupEffects(ctx) {
-    // Shield visual
-    if (this.hasShield) {
-      ctx.strokeStyle = '#4169E1';
-      ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.5 + Math.sin(this.shieldAngle) * 0.2;
-      
-      // Draw shield bubble
-      ctx.beginPath();
-      ctx.ellipse(
-        this.x + this.width / 2,
-        this.y + this.height / 2,
-        this.width * 0.7,
-        this.height * 0.6,
-        0, 0, Math.PI * 2
-      );
-      ctx.stroke();
-      
-      // Draw shield hit indicators
-      for (let i = 0; i < this.shieldHits; i++) {
-        const angle = (Math.PI * 2 / 3) * i + this.shieldAngle;
-        const x = this.x + this.width / 2 + Math.cos(angle) * this.width * 0.6;
-        const y = this.y + this.height / 2 + Math.sin(angle) * this.height * 0.5;
-        
-        ctx.fillStyle = '#4169E1';
-        ctx.globalAlpha = 0.8;
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      ctx.globalAlpha = 1;
-    }
-    
-    // Invincibility glow
-    if (this.isInvincible) {
-      const glowSize = 5 + Math.sin(Date.now() * 0.01) * 3;
-      const gradient = ctx.createRadialGradient(
-        this.x + this.width / 2,
-        this.y + this.height / 2,
-        0,
-        this.x + this.width / 2,
-        this.y + this.height / 2,
-        this.width
-      );
-      gradient.addColorStop(0, 'rgba(255, 215, 0, 0.5)');
-      gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
-      
-      ctx.fillStyle = gradient;
-      ctx.fillRect(
-        this.x - glowSize,
-        this.y - glowSize,
-        this.width + glowSize * 2,
-        this.height + glowSize * 2
-      );
-    }
-    
-    // Magnet field visual
-    if (this.magnetRadius > 0) {
-      ctx.strokeStyle = '#FFB300';
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.3;
-      ctx.setLineDash([5, 5]);
-      
-      ctx.beginPath();
-      ctx.arc(
-        this.x + this.width / 2,
-        this.y + this.height / 2,
-        this.magnetRadius,
-        0, Math.PI * 2
-      );
-      ctx.stroke();
-      
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
-    }
-  }
 
   draw(ctx) {
     // Save the canvas state before transformations
     ctx.save();
-    
-    // Apply scale transformation if size is changed
-    if (this.scale !== 1) {
-      const centerX = this.x + this.width / 2;
-      const centerY = this.y + this.height / 2;
-      ctx.translate(centerX, centerY);
-      ctx.scale(this.scale, this.scale);
-      ctx.translate(-centerX, -centerY);
-    }
     
     // Flashing effect during invulnerability
     if (this.invulnerableTimer > 0) {
@@ -1048,9 +911,6 @@ class Player {
         ctx.globalAlpha = 0.5; // Blink by changing opacity
       }
     }
-    
-    // Draw powerup effects behind player
-    this.drawPowerupEffects(ctx);
     
     if (this.isFlipping) {
       // Calculate the center of the player for rotation
@@ -1171,14 +1031,6 @@ class Player {
         ctx.fillStyle = 'pink';
         ctx.beginPath();
         ctx.arc(this.x + this.width / 2, this.y + 15, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      // Visual indicator for remaining jumps
-      ctx.fillStyle = 'cyan';
-      for (let i = 0; i < this.jumpsRemaining; i++) {
-        ctx.beginPath();
-        ctx.arc(this.x + 5 + i * 8, this.y - 5, 2, 0, Math.PI * 2);
         ctx.fill();
       }
     }
