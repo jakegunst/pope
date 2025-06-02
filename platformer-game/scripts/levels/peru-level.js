@@ -196,10 +196,12 @@ const cleanedTilemap = rawTilemap.map((row, rowIndex) => {
     switch (symbol) {
       case 'W':
         enemies.push({ type: 'walker', x, y });
-        return '.'; // Replace with passable terrain
+        return ' '; // Replace with empty space
       case 'F':
         enemies.push({ type: 'flyer', x, y });
-        return '.';
+        return ' '; // Replace with empty space
+      case '.':
+        return ' '; // Convert periods to spaces
       default:
         return symbol;
     }
