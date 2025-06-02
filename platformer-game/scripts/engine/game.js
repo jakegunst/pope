@@ -5,6 +5,7 @@ import { keys } from './input.js';
 // Import game objects - FIXED: removed duplicates and corrected Bouncer import
 import { Bouncer } from '../objects/bouncer.js';
 import { EnemyManager } from '../objects/EnemyManager.js';
+import { TileParser } from '../objects/TileParser.js';
 import { CollectibleManager } from '../objects/CollectibleManager.js';
 import { PowerupSystem } from '../objects/PowerupSystem.js';
 import demoLevel from '../levels/demo-level.js';
