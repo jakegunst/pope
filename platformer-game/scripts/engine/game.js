@@ -11,8 +11,6 @@ import demoLevel from '../levels/demo-level.js';
 import { PeruLevel } from '../levels/peru-level.js';
 import { Player } from '../objects/player.js';
 import { Platform } from '../objects/platform.js';
-import { TileParser, tileParser } from '../objects/TileParser.js';
-import { HazardManager } from '../objects/Hazard.js';
 
 // Game constants
 const CANVAS_WIDTH = 800;
@@ -227,9 +225,21 @@ function loadLevel(levelData) {
 // Load a tile-based level
 function loadTileLevel(levelData) {
     console.log("Loading tile-based level:", levelData.name);
+    console.log("Level dimensions:", levelData.width, "x", levelData.height);
+    console.log("Tile data rows:", levelData.data.length);
+    
+    // Make sure we have a tileParser instance
+    if (!tileParser) {
+        console.error("TileParser not initialized!");
+        return;
+    }
     
     // Parse the tile data
     const parsed = tileParser.parseLevel(levelData);
+    console.log("Parsed level data:", parsed);
+    console.log("Number of platforms:", parsed.platforms.length);
+    console.log("Number of collectibles:", parsed.collectibles.length);
+    console.log("Number of enemies:", parsed.enemies.length);
     
     // Set as current level
     currentLevel = parsed;
@@ -237,8 +247,10 @@ function loadTileLevel(levelData) {
     // Initialize player
     if (parsed.playerStart) {
         player = new Player(parsed.playerStart.x, parsed.playerStart.y);
+        console.log("Player starting at:", parsed.playerStart);
     } else {
         player = new Player(100, 100);
+        console.log("Using default player position");
     }
     
     // Load platforms from parsed data
@@ -523,6 +535,29 @@ function gameLoop() {
             platform.draw(ctx);
         }
     });
+    
+    // Debug: Draw tile grid for tile-based levels
+    if (currentLevel && currentLevel.width > CANVAS_WIDTH && tileParser) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+        const tileSize = 32;
+        
+        // Draw vertical lines
+        for (let x = Math.floor(camera.x / tileSize) * tileSize; x < camera.x + CANVAS_WIDTH; x += tileSize) {
+            ctx.beginPath();
+            ctx.moveTo(x - camera.x, 0);
+            ctx.lineTo(x - camera.x, CANVAS_HEIGHT);
+            ctx.stroke();
+        }
+        
+        // Draw horizontal lines
+        for (let y = Math.floor(camera.y / tileSize) * tileSize; y < camera.y + CANVAS_HEIGHT; y += tileSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y - camera.y);
+            ctx.lineTo(CANVAS_WIDTH, y - camera.y);
+            ctx.stroke();
+        }
+    }
     
     // Draw collectibles
     collectibleManager.draw(ctx, camera);
