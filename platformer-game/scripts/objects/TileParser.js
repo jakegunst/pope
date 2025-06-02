@@ -133,13 +133,17 @@ export class TileParser {
           };
           parsed.collectibles.push(collectible);
         }
-        else if (tileDef.type === 'enemy') {
-          // Create enemy spawn point
-          parsed.enemies.push({
-            type: tileDef.enemyType,
+        else if (tileDef.type === 'exit') {
+          // Create exit as a special collectible or marker
+          parsed.collectibles.push({
+            type: 'exit',
             x: pixelX,
-            y: pixelY - 10 // Slightly above ground
+            y: pixelY,
+            options: { isExit: true }
           });
+          
+          // Also store exit position
+          parsed.exitPosition = { x: pixelX, y: pixelY };
         }
         else if (tileDef.hazard) {
           // Create hazard based on type
