@@ -186,6 +186,13 @@ const rawTilemap = [
 
 const TILE_SIZE = 32;
 
+// Calculate actual dimensions from the tilemap
+const levelHeight = rawTilemap.length;
+const levelWidth = rawTilemap[0].length;
+
+console.log("Peru level dimensions:", levelWidth, "x", levelHeight, "tiles");
+console.log("Peru level size in pixels:", levelWidth * TILE_SIZE, "x", levelHeight * TILE_SIZE);
+
 // Step 1: Extract enemies and clean the tilemap
 const enemies = [];
 const cleanedTilemap = rawTilemap.map((row, rowIndex) => {
@@ -211,16 +218,24 @@ const cleanedTilemap = rawTilemap.map((row, rowIndex) => {
 // Step 2: Parse the cleaned tilemap
 const parsedLevel = tileParser.parseLevel({
   data: cleanedTilemap,
-  width: 400,
-  height: 180,
+  width: levelWidth,  // Use actual width
+  height: levelHeight, // Use actual height
   tileSize: TILE_SIZE,
   name: 'Peru'
 });
+
+// Debug: Log what was parsed
+console.log("Peru level parsed:", parsedLevel);
+console.log("Platforms found:", parsedLevel.platforms?.length || 0);
+console.log("Enemies to spawn:", enemies.length);
 
 // Step 3: Add enemies to the parsed level data
 const PeruLevel = {
   ...parsedLevel,
   enemies: enemies
 };
+
+// Debug: Log final level data
+console.log("Final Peru level data:", PeruLevel);
 
 export { PeruLevel };
