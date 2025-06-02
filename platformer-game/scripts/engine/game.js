@@ -243,8 +243,19 @@ function loadTileLevel(levelData) {
     console.log("Number of collectibles:", parsed.collectibles.length);
     console.log("Number of enemies:", parsed.enemies.length);
     
-    // Set as current level
-    currentLevel = parsed;
+    // Set as current level with proper dimensions
+    currentLevel = {
+        ...parsed,
+        width: parsed.width || (levelData.width * levelData.tileSize),
+        height: parsed.height || (levelData.height * levelData.tileSize)
+    };
+    
+    console.log("Current level dimensions:", currentLevel.width, "x", currentLevel.height);
+    
+    // Make sure the level has proper dimensions for camera
+    if (!currentLevel.width || !currentLevel.height) {
+        console.error("Level missing dimensions!", currentLevel);
+    }
     
     // Initialize player
     if (parsed.playerStart) {
@@ -429,6 +440,9 @@ function loadDefaultLevel() {
     score = 0;
     collectedKeys = 0;
     
+    // Clear current level reference for default level
+    currentLevel = null;
+    
     // Clear level name
     document.getElementById('level-name').textContent = '';
 }
@@ -438,8 +452,15 @@ function updateCamera() {
     camera.prevX = camera.x;
     camera.prevY = camera.y;
     
+    // Debug logging
+    if (currentLevel && currentLevel.width > CANVAS_WIDTH) {
+        console.log("Camera update - Level width:", currentLevel.width, "Screen width:", CANVAS_WIDTH);
+        console.log("Player position:", player.x, "Camera position:", camera.x);
+    }
+    
     // Only update camera for levels wider than screen
     if (!currentLevel || !currentLevel.width || currentLevel.width <= CANVAS_WIDTH) {
+        console.log("Camera not updating - level not wide enough or missing width");
         return;
     }
     
@@ -547,16 +568,16 @@ function gameLoop() {
         // Draw vertical lines
         for (let x = Math.floor(camera.x / tileSize) * tileSize; x < camera.x + CANVAS_WIDTH; x += tileSize) {
             ctx.beginPath();
-            ctx.moveTo(x - camera.x, 0);
-            ctx.lineTo(x - camera.x, CANVAS_HEIGHT);
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, CANVAS_HEIGHT);
             ctx.stroke();
         }
         
         // Draw horizontal lines
         for (let y = Math.floor(camera.y / tileSize) * tileSize; y < camera.y + CANVAS_HEIGHT; y += tileSize) {
             ctx.beginPath();
-            ctx.moveTo(0, y - camera.y);
-            ctx.lineTo(CANVAS_WIDTH, y - camera.y);
+            ctx.moveTo(Math.max(0, camera.x), y);
+            ctx.lineTo(camera.x + CANVAS_WIDTH, y);
             ctx.stroke();
         }
     }
@@ -633,9 +654,9 @@ function updateUI() {
     }
     collectiblesDisplay.textContent = `Coins: ${coinsCollected} | Keys: ${collectedKeys} | Items: ${activeCollectibles}`;
     
-    // Debug info
+    // Debug info with camera position
     if (player) {
-        const debugInfo = `Pos: ${Math.round(player.x)},${Math.round(player.y)} | Vel: ${player.velocityX.toFixed(1)},${player.velocityY.toFixed(1)} | Ground: ${player.isGrounded}`;
+        const debugInfo = `Pos: ${Math.round(player.x)},${Math.round(player.y)} | Vel: ${player.velocityX.toFixed(1)},${player.velocityY.toFixed(1)} | Ground: ${player.isGrounded} | Camera: ${Math.round(camera.x)},${Math.round(camera.y)}`;
         
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(10, CANVAS_HEIGHT - 30, CANVAS_WIDTH - 20, 20);
@@ -663,12 +684,6 @@ window.addEventListener('keydown', (e) => {
                 // Load Peru level (tile-based)
                 loadLevel(PeruLevel);
                 console.log("Loading Peru level (tile-based)");
-                break;
-                
-            case 't':
-                // Load test tile level
-                loadLevel(testLevel);
-                console.log("Loading test tile level");
                 break;
                 
             case '0':
