@@ -3,7 +3,7 @@ import * as Utils from './utils.js';
 import { keys } from './input.js';
 
 // Import game objects - FIXED: removed duplicates and corrected Bouncer import
-import { Bouncer } from '../objects/bouncer.js';
+import Bouncer from '../objects/bouncer.js';
 import { EnemyManager } from '../objects/EnemyManager.js';
 import { CollectibleManager } from '../objects/CollectibleManager.js';
 import { PowerupSystem } from '../objects/PowerupSystem.js';
@@ -32,6 +32,8 @@ let bouncers = [];
 let enemyManager;
 let collectibleManager;
 let powerupSystem;
+let tileParser;
+let hazardManager;
 let camera = { 
     x: 0, 
     y: 0, 
@@ -68,6 +70,8 @@ function init() {
     enemyManager = new EnemyManager();
     collectibleManager = new CollectibleManager();
     powerupSystem = new PowerupSystem();
+    tileParser = new TileParser();
+    hazardManager = new HazardManager();
     
     // Add level select UI after DOM is ready
     setTimeout(() => {
@@ -143,6 +147,13 @@ function startGame() {
 
 // Load a level from data
 function loadLevel(levelData) {
+    // Check if this is a tile-based level
+    if (levelData.data && Array.isArray(levelData.data)) {
+        loadTileLevel(levelData);
+        return;
+    }
+    
+    // Otherwise load as object-based level
     currentLevel = levelData;
     
     // Initialize player at level's starting position
@@ -192,6 +203,12 @@ function loadLevel(levelData) {
         collectibleManager.createCollectiblesFromLevel(levelData);
     }
     
+    // Load hazards
+    hazardManager.clearHazards();
+    if (levelData.hazards) {
+        hazardManager.createHazardsFromLevel(levelData.hazards);
+    }
+    
     // Reset camera
     camera.x = 0;
     camera.y = 0;
@@ -205,6 +222,73 @@ function loadLevel(levelData) {
     
     // Update UI with level name
     document.getElementById('level-name').textContent = levelData.name || '';
+}
+
+// Load a tile-based level
+function loadTileLevel(levelData) {
+    console.log("Loading tile-based level:", levelData.name);
+    
+    // Parse the tile data
+    const parsed = tileParser.parseLevel(levelData);
+    
+    // Set as current level
+    currentLevel = parsed;
+    
+    // Initialize player
+    if (parsed.playerStart) {
+        player = new Player(parsed.playerStart.x, parsed.playerStart.y);
+    } else {
+        player = new Player(100, 100);
+    }
+    
+    // Load platforms from parsed data
+    platforms = [];
+    parsed.platforms.forEach(platformData => {
+        const platform = new Platform(
+            platformData.x,
+            platformData.y,
+            platformData.width,
+            platformData.height,
+            platformData.type,
+            platformData.options || {}
+        );
+        platforms.push(platform);
+    });
+    
+    // Load enemies
+    enemyManager.clearEnemies();
+    if (parsed.enemies) {
+        enemyManager.createEnemiesFromLevel({ enemies: parsed.enemies });
+    }
+    
+    // Load collectibles
+    collectibleManager.clearCollectibles();
+    if (parsed.collectibles) {
+        collectibleManager.createCollectiblesFromLevel({ collectibles: parsed.collectibles });
+    }
+    
+    // Load hazards
+    hazardManager.clearHazards();
+    if (parsed.hazards) {
+        hazardManager.createHazardsFromLevel(parsed.hazards);
+    }
+    
+    // No bouncers in tile-based levels (yet)
+    bouncers = [];
+    
+    // Reset camera
+    camera.x = 0;
+    camera.y = 0;
+    camera.prevX = 0;
+    camera.prevY = 0;
+    
+    // Reset score and powerups
+    score = 0;
+    collectedKeys = 0;
+    powerupSystem.clearAllPowerups(player);
+    
+    // Update UI
+    document.getElementById('level-name').textContent = parsed.name;
 }
 
 // Create the default level
@@ -409,6 +493,9 @@ function gameLoop() {
     // Update collectibles (with powerup system integration)
     collectibleManager.update(deltaTime, player, game);
     
+    // Update hazards
+    hazardManager.update(deltaTime, player);
+    
     // Update player
     if (player) {
         // Handle input
@@ -439,6 +526,9 @@ function gameLoop() {
     
     // Draw collectibles
     collectibleManager.draw(ctx, camera);
+    
+    // Draw hazards
+    hazardManager.draw(ctx, camera);
     
     // Draw bouncers
     bouncers.forEach(bouncer => {
@@ -533,8 +623,9 @@ window.addEventListener('keydown', (e) => {
                 break;
                 
             case 'p':
-                // Note: Peru level needs tile parsing implementation
-                console.log("Peru level requires tile parsing system (not yet implemented)");
+                // Load Peru level (tile-based)
+                loadLevel(PeruLevel);
+                console.log("Loading Peru level (tile-based)");
                 break;
                 
             case '0':
