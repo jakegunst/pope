@@ -1,4 +1,4 @@
-import * as TileParser from "../objects/TileParser.js";
+import { tileParser } from "../objects/TileParser.js";
 
 // Full tilemap with embedded enemy markers (W = Walker, F = Flyer)
 const rawTilemap = [
@@ -207,7 +207,13 @@ const cleanedTilemap = rawTilemap.map((row, rowIndex) => {
 });
 
 // Step 2: Parse the cleaned tilemap
-const parsedLevel = TileParser.parse(cleanedTilemap);
+const parsedLevel = tileParser.parseLevel({
+  data: cleanedTilemap,
+  width: 400,
+  height: 180,
+  tileSize: TILE_SIZE,
+  name: 'Peru'
+});
 
 // Step 3: Add enemies to the parsed level data
 const PeruLevel = {
