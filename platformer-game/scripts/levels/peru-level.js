@@ -1,5 +1,5 @@
 import * as EnemyManager from "../objects/EnemyManager.js";
-import TileParser from "../objects/TileParser.js";
+import * as TileParser from "../objects/TileParser.js";
 
 // Full tilemap with embedded enemy markers (W = Walker, F = Flyer)
 const rawTilemap = [
