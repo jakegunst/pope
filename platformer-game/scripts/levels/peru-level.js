@@ -1,6 +1,4 @@
-import { EnemyManager } from "../objects/EnemyManager.js";
 import * as TileParser from "../objects/TileParser.js";
-
 // Full tilemap with embedded enemy markers (W = Walker, F = Flyer)
 const rawTilemap = [
   "................................................................................................................................................................................................................................................................................................................................................................................................................",
@@ -187,7 +185,8 @@ const rawTilemap = [
 
 const TILE_SIZE = 32;
 
-// Step 1: Spawn enemies and clean the tilemap
+// Step 1: Extract enemies and clean the tilemap
+const enemies = [];
 const cleanedTilemap = rawTilemap.map((row, rowIndex) => {
   return row.split('').map((symbol, colIndex) => {
     const x = colIndex * TILE_SIZE;
@@ -195,10 +194,10 @@ const cleanedTilemap = rawTilemap.map((row, rowIndex) => {
 
     switch (symbol) {
       case 'W':
-        enemyManager.createEnemy("walker", x, y);
+        enemies.push({ type: 'walker', x, y });
         return '.'; // Replace with passable terrain
       case 'F':
-        enemyManager.createEnemy("flyer", x, y);
+        enemies.push({ type: 'flyer', x, y });
         return '.';
       default:
         return symbol;
@@ -206,6 +205,13 @@ const cleanedTilemap = rawTilemap.map((row, rowIndex) => {
   }).join('');
 });
 
-// Step 2: Export parsed tilemap
-const PeruLevel = TileParser.parse(cleanedTilemap);
+// Step 2: Parse the cleaned tilemap
+const parsedLevel = TileParser.parse(cleanedTilemap);
+
+// Step 3: Add enemies to the parsed level data
+const PeruLevel = {
+  ...parsedLevel,
+  enemies: enemies
+};
+
 export { PeruLevel };
