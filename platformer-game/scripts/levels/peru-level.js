@@ -1,4 +1,4 @@
-import * as EnemyManager from "../objects/EnemyManager.js";
+import { EnemyManager } from "../objects/EnemyManager.js";
 import * as TileParser from "../objects/TileParser.js";
 
 // Full tilemap with embedded enemy markers (W = Walker, F = Flyer)
