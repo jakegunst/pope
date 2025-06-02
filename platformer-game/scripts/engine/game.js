@@ -452,15 +452,8 @@ function updateCamera() {
     camera.prevX = camera.x;
     camera.prevY = camera.y;
     
-    // Debug logging
-    if (currentLevel && currentLevel.width > CANVAS_WIDTH) {
-        console.log("Camera update - Level width:", currentLevel.width, "Screen width:", CANVAS_WIDTH);
-        console.log("Player position:", player.x, "Camera position:", camera.x);
-    }
-    
     // Only update camera for levels wider than screen
     if (!currentLevel || !currentLevel.width || currentLevel.width <= CANVAS_WIDTH) {
-        console.log("Camera not updating - level not wide enough or missing width");
         return;
     }
     
