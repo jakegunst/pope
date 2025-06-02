@@ -11,6 +11,8 @@ import demoLevel from '../levels/demo-level.js';
 import { PeruLevel } from '../levels/peru-level.js';
 import { Player } from '../objects/player.js';
 import { Platform } from '../objects/platform.js';
+import { TileParser, tileParser } from '../objects/TileParser.js';
+import { HazardManager } from '../objects/Hazard.js';
 
 // Game constants
 const CANVAS_WIDTH = 800;
