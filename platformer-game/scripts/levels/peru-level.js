@@ -195,10 +195,10 @@ const cleanedTilemap = rawTilemap.map((row, rowIndex) => {
 
     switch (symbol) {
       case 'W':
-        EnemyManager.spawn("walker", x, y);
+        enemyManager.createEnemy("walker", x, y);
         return '.'; // Replace with passable terrain
       case 'F':
-        EnemyManager.spawn("flyer", x, y);
+        enemyManager.createEnemy("flyer", x, y);
         return '.';
       default:
         return symbol;
