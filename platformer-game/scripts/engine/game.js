@@ -32,7 +32,6 @@ let bouncers = [];
 let enemyManager;
 let collectibleManager;
 let powerupSystem;
-let tileParser;
 let hazardManager;
 let camera = { 
     x: 0, 
@@ -66,11 +65,10 @@ function init() {
     // Hide game UI initially
     document.getElementById('game-ui').style.display = 'none';
     
-    // Initialize managers
+    // Initialize managers (move to init to ensure they exist before game starts)
     enemyManager = new EnemyManager();
     collectibleManager = new CollectibleManager();
     powerupSystem = new PowerupSystem();
-    tileParser = new TileParser();
     hazardManager = new HazardManager();
     
     // Add level select UI after DOM is ready
