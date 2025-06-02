@@ -7,22 +7,24 @@ export class TileParser {
   constructor(tileSize = 32) {
     this.tileSize = tileSize;
     
-    // Define what each character represents
+    // Define what each character represents - UPDATED TO MATCH YOUR USAGE
     this.tileDefinitions = {
       // Terrain
       'G': { type: 'ground', solid: true },
-      'B': { type: 'bedrock', solid: true }, // Unbreakable ground
       'P': { type: 'platform', solid: true },
-      'T': { type: 'ceiling', solid: true },
-      'M': { type: 'moving-platform', solid: true },
-      'S': { type: 'spike', hazard: true },
+      'T': { type: 'one-way-platform', solid: false, oneWay: true }, // Pass through from below
+      'S': { type: 'slope', solid: true, slope: true },
+      'M': { type: 'moving-platform-down', solid: true, moving: true },
+      'U': { type: 'moving-platform-up', solid: true, moving: true },
+      
+      // Hazards
+      'B': { type: 'bottomless-pit', hazard: true, fatal: true },
+      'K': { type: 'spike', hazard: true },
       'D': { type: 'destructible', solid: true, breakable: true },
       
       // Collectibles
       'C': { type: 'coin', collectible: true },
-      'K': { type: 'key', collectible: true },
-      'L': { type: 'leaf', collectible: true },
-      'E': { type: 'gem', collectible: true },
+      'L': { type: 'leaf', collectible: true }, // Power-up
       
       // Enemies (store position for enemy spawning)
       'WALKER': { type: 'enemy', enemyType: 'walker' },
@@ -32,22 +34,21 @@ export class TileParser {
       
       // Special
       'X': { type: 'player-start' },
-      ' ': { type: 'empty' },
-      
-      // One-way platforms
-      '=': { type: 'one-way-platform', solid: false, oneWay: true }
+      'E': { type: 'exit' }, // Level exit
+      ' ': { type: 'empty' }
     };
     
-    // Colors for different tile types
+    // Colors for different tile types - UPDATED
     this.tileColors = {
       'ground': '#8B4513',
-      'bedrock': '#4A4A4A',
       'platform': '#4CAF50',
-      'ceiling': '#666666',
-      'moving-platform': '#FF4081',
+      'one-way-platform': '#00BFFF',
+      'slope': '#FFA500',
+      'moving-platform-down': '#FF4081',
+      'moving-platform-up': '#E91E63',
+      'bottomless-pit': '#000000',
       'spike': '#FF0000',
-      'destructible': '#DEB887',
-      'one-way-platform': '#00BFFF'
+      'destructible': '#DEB887'
     };
   }
   
@@ -141,9 +142,18 @@ export class TileParser {
           });
         }
         else if (tileDef.hazard) {
-          // Create hazard
+          // Create hazard based on type
+          let hazardType = tileDef.type;
+          
+          // Map tile types to hazard types
+          if (tileDef.type === 'spike') {
+            hazardType = 'spike'; // K = spike
+          } else if (tileDef.type === 'bottomless-pit') {
+            hazardType = 'bottomless-pit'; // B = bottomless pit
+          }
+          
           parsed.hazards.push({
-            type: tileDef.type,
+            type: hazardType,
             x: pixelX,
             y: pixelY,
             width: this.tileSize,
@@ -191,13 +201,28 @@ export class TileParser {
         platformType = 'one-way';
         break;
         
-      case 'moving-platform':
+      case 'slope':
+        platformType = 'slope';
+        options.angle = 30; // Default slope angle
+        options.direction = 'right'; // Default direction
+        break;
+        
+      case 'moving-platform-down':
         platformType = 'moving';
-        // Look for movement pattern indicators nearby
-        options.moveX = 100; // Default horizontal movement
-        options.moveY = 0;
+        options.moveX = 0;
+        options.moveY = 100; // Move down first
         options.moveSpeed = 0.5;
         options.moveTiming = 'sine';
+        options.movePhase = 0; // Start at top
+        break;
+        
+      case 'moving-platform-up':
+        platformType = 'moving';
+        options.moveX = 0;
+        options.moveY = -100; // Move up first
+        options.moveSpeed = 0.5;
+        options.moveTiming = 'sine';
+        options.movePhase = 0.5; // Start at bottom
         break;
         
       case 'destructible':
@@ -224,9 +249,8 @@ export class TileParser {
   getCollectibleType(char) {
     const typeMap = {
       'C': 'coin',
-      'K': 'key',
-      'L': 'leaf',
-      'E': 'gem'
+      'L': 'leaf', // L = Power-up leaf
+      'E': 'gem'   // E might be used for exit, but keeping gem support
     };
     return typeMap[char] || 'coin';
   }
