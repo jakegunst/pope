@@ -207,4 +207,5 @@ const cleanedTilemap = rawTilemap.map((row, rowIndex) => {
 });
 
 // Step 2: Export parsed tilemap
-export default TileParser.parse(cleanedTilemap);
+const PeruLevel = TileParser.parse(cleanedTilemap);
+export { PeruLevel };
