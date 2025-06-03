@@ -461,19 +461,22 @@ function updateCamera() {
     camera.prevX = camera.x;
     camera.prevY = camera.y;
     
-    // Only update camera for levels wider than screen
-    if (!currentLevel || !currentLevel.width || currentLevel.width <= CANVAS_WIDTH) {
+    // Only update camera for levels larger than screen
+    if (!currentLevel || !currentLevel.width || !currentLevel.height) {
         return;
     }
     
     // Center camera on player with some smoothing
     const targetX = player.x - CANVAS_WIDTH / 2;
+    const targetY = player.y - CANVAS_HEIGHT / 2;
     
-    // Smooth camera movement
+    // Smooth camera movement for both X and Y
     camera.x += (targetX - camera.x) * 0.1;
+    camera.y += (targetY - camera.y) * 0.1;
     
     // Clamp camera to level bounds
     camera.x = Math.max(0, Math.min(camera.x, currentLevel.width - CANVAS_WIDTH));
+    camera.y = Math.max(0, Math.min(camera.y, currentLevel.height - CANVAS_HEIGHT));
 }
 
 // Game object for score and key management
