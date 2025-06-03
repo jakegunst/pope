@@ -210,6 +210,7 @@ function loadTileBasedLevel(LevelClass) {
     
     console.log(`Loaded ${currentLevel.name} level`);
     console.log(`Level size: ${currentLevel.pixelWidth}x${currentLevel.pixelHeight}`);
+    console.log(`Camera bounds: maxX=${camera.maxX}, maxY=${camera.maxY}`);
     console.log(`Enemies: ${enemyManager.getEnemyCount()}`);
     console.log(`Collectibles: ${collectibleManager.collectibles.length}`);
 }
