@@ -168,7 +168,7 @@ function startGame() {
 function loadTileBasedLevel(LevelClass) {
     // Clear existing objects
     enemyManager.clearEnemies();
-    collectibleManager.clear();
+    collectibleManager.clearCollectibles();  // Use the correct method name
     effectManager.clear();
     platforms = [];
     bouncers = [];
@@ -448,8 +448,8 @@ function gameLoop(deltaTime) {
     });
     
     // Update managers
-    enemyManager.update(cappedDeltaTime, platforms, player);
-    collectibleManager.update(cappedDeltaTime, player);
+    enemyManager.update(platforms, player);  // Enemy manager doesn't use deltaTime
+    collectibleManager.update(cappedDeltaTime, player, game);  // Pass game object
     effectManager.update(cappedDeltaTime);
     
     // Update player with controls
