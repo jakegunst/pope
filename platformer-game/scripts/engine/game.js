@@ -56,7 +56,18 @@ const game = {
     get player() { return player; },
     get score() { return score; },
     set score(value) { score = value; },
-    get camera() { return camera; }
+    get camera() { return camera; },
+    
+    // Add score method
+    addScore(points) {
+        score += points;
+    },
+    
+    // Add other game methods that collectibles might need
+    playSound(soundName) {
+        // Placeholder for sound effects
+        console.log(`Playing sound: ${soundName}`);
+    }
 };
 
 // Initialize the game
