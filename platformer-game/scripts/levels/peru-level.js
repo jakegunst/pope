@@ -212,6 +212,11 @@ class PeruLevel {
   }
   
   parseMap() {
+    console.log('Parsing Peru level map...');
+    let enemyCount = 0;
+    let collectibleCount = 0;
+    let platformCount = 0;
+    
     // Convert the character map into game objects
     for (let row = 0; row < this.mapData.length; row++) {
       this.tiles[row] = [];
@@ -234,6 +239,7 @@ class PeruLevel {
               width: this.tileSize,
               height: this.tileSize
             });
+            platformCount++;
             break;
             
           // Moving platform
@@ -254,16 +260,19 @@ class PeruLevel {
           // Walker enemy (replaced WALKER with W)
           case 'W':
             this.enemyManager.createEnemy('walker', x + this.tileSize/2, y + this.tileSize/2);
+            enemyCount++;
             break;
             
           // Flyer enemy (replaced FLYER with F)
           case 'F':
             this.enemyManager.createEnemy('flyer', x + this.tileSize/2, y + this.tileSize/2);
+            enemyCount++;
             break;
             
           // Coin collectible
           case 'C':
             this.collectibleManager.createCollectible('coin', x + this.tileSize/2, y + this.tileSize/2);
+            collectibleCount++;
             break;
             
           // Speed boost powerup
@@ -295,6 +304,8 @@ class PeruLevel {
         }
       }
     }
+    
+    console.log(`Peru level parsed: ${platformCount} platforms, ${enemyCount} enemies, ${collectibleCount} collectibles`);
   }
   
   update(deltaTime) {
