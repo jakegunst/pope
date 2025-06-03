@@ -1,4 +1,5 @@
 import { MovingPlatform } from '../objects/MovingPlatform.js';
+import { Platform } from '../objects/platform.js';
 
 class PeruLevel {
   constructor(game) {
@@ -225,6 +226,7 @@ class PeruLevel {
         const x = col * this.tileSize;
         const y = row * this.tileSize;
         
+        // ALWAYS store the character in tiles array for rendering
         this.tiles[row][col] = char;
         
         switch(char) {
@@ -233,12 +235,8 @@ class PeruLevel {
           case 'B':
           case 'T':
           case 'P':
-            this.platforms.push({
-              x: x,
-              y: y,
-              width: this.tileSize,
-              height: this.tileSize
-            });
+            const platform = new Platform(x, y, this.tileSize, this.tileSize, 'normal');
+            this.platforms.push(platform);
             platformCount++;
             break;
             
@@ -338,7 +336,10 @@ class PeruLevel {
     
     // Debug: Draw a background so we can see the level area
     ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(0, 0, this.pixelWidth, this.pixelHeight);
+    ctx.fillRect(camera.x - 100, camera.y - 100, camera.width + 200, camera.height + 200);
+    
+    console.log(`Drawing tiles from (${clampedStartCol},${clampedStartRow}) to (${clampedEndCol},${clampedEndRow})`);
+    let tilesDrawn = 0;
     
     // Draw visible tiles
     for (let row = clampedStartRow; row < clampedEndRow; row++) {
@@ -353,6 +354,7 @@ class PeruLevel {
           case 'G': // Grass/ground
             ctx.fillStyle = '#4a4';
             ctx.fillRect(x, y, this.tileSize, this.tileSize);
+            tilesDrawn++;
             break;
             
           case 'B': // Brown ground
@@ -418,13 +420,6 @@ class PeruLevel {
     // Draw moving platforms (they draw themselves)
     this.movingPlatforms.forEach(platform => {
       platform.draw(ctx);
-    });
-    
-    // DEBUG: Draw all platforms as red rectangles to see them
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
-    this.platforms.forEach(platform => {
-      ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
     });
   }
 }
