@@ -17,7 +17,7 @@ class PeruLevel {
     this.platforms = [];
     this.movingPlatforms = [];
     this.tiles = [];
-    this.startPosition = { x: 1 * 32, y: 177 * 32 };
+    this.startPosition = { x: 64, y: 5600 }; // Start near bottom left
     
     // The level map data
     this.mapData = [
@@ -300,6 +300,14 @@ class PeruLevel {
           // Player start position
           case 'X':
             this.startPosition = { x: x + this.tileSize/2, y: y };
+            // Also place a platform under the start position
+            this.platforms.push({
+              x: x,
+              y: y,
+              width: this.tileSize,
+              height: this.tileSize
+            });
+            platformCount++;
             break;
         }
       }
@@ -327,6 +335,10 @@ class PeruLevel {
     const clampedEndCol = Math.min(this.width, endCol);
     const clampedStartRow = Math.max(0, startRow);
     const clampedEndRow = Math.min(this.height, endRow);
+    
+    // Debug: Draw a background so we can see the level area
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, this.pixelWidth, this.pixelHeight);
     
     // Draw visible tiles
     for (let row = clampedStartRow; row < clampedEndRow; row++) {
@@ -406,6 +418,13 @@ class PeruLevel {
     // Draw moving platforms (they draw themselves)
     this.movingPlatforms.forEach(platform => {
       platform.draw(ctx);
+    });
+    
+    // DEBUG: Draw all platforms as red rectangles to see them
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    this.platforms.forEach(platform => {
+      ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
     });
   }
 }
