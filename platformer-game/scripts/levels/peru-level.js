@@ -1,3 +1,5 @@
+import { MovingPlatform } from '../objects/MovingPlatform.js';
+
 class PeruLevel {
   constructor(game) {
     this.game = game;
@@ -266,12 +268,12 @@ class PeruLevel {
             
           // Speed boost powerup
           case 'S':
-            this.collectibleManager.createCollectible('speedBoost', x + this.tileSize/2, y + this.tileSize/2);
+            this.collectibleManager.createCollectible('leaf', x + this.tileSize/2, y + this.tileSize/2, { powerupType: 'speed' });
             break;
             
           // Double jump powerup
           case 'D':
-            this.collectibleManager.createCollectible('doubleJump', x + this.tileSize/2, y + this.tileSize/2);
+            this.collectibleManager.createCollectible('leaf', x + this.tileSize/2, y + this.tileSize/2, { powerupType: 'doubleJump' });
             break;
             
           // Spike hazard
