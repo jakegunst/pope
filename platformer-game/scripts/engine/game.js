@@ -357,6 +357,16 @@ function loadDefaultLevel() {
     enemyManager.createEnemy('flyer', 300, 200);
     enemyManager.createEnemy('flipper', 600, 400);
     
+    // Add some collectibles to the default level
+    collectibleManager.clearCollectibles();
+    collectibleManager.createCollectible('coin', 150, 420);
+    collectibleManager.createCollectible('coin', 250, 320);
+    collectibleManager.createCollectible('coin', 350, 220);
+    collectibleManager.createCollectible('coin', 450, 420);
+    collectibleManager.createCollectible('coin', 550, 320);
+    collectibleManager.createCollectible('bigcoin', 400, 120);
+    collectibleManager.createCollectible('gem', 650, 120);
+    
     // Reset camera
     camera.x = 0;
     camera.y = 0;
@@ -505,7 +515,7 @@ function gameLoop(deltaTime) {
     });
     
     // Draw collectibles
-    collectibleManager.draw(ctx);
+    collectibleManager.draw(ctx, camera);
     
     // Draw enemies
     enemyManager.draw(ctx, camera);
