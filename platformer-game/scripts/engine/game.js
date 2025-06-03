@@ -160,6 +160,9 @@ function loadLevel(levelData) {
     const startPos = levelData.playerStart || { x: 100, y: 300 };
     player = new Player(startPos.x, startPos.y);
     
+    // Set level bounds for the player
+    player.setLevelBounds(currentLevel.width, currentLevel.height);
+    
     // Load platforms
     platforms = [];
     if (levelData.platforms) {
@@ -266,6 +269,9 @@ function loadTileLevel(levelData) {
         console.log("Using default player position");
     }
     
+    // Set level bounds for the player
+    player.setLevelBounds(currentLevel.width, currentLevel.height);
+    
     // Load platforms from parsed data
     platforms = [];
     parsed.platforms.forEach(platformData => {
@@ -320,6 +326,9 @@ function loadTileLevel(levelData) {
 function loadDefaultLevel() {
     // Initialize player
     player = new Player(100, 300);
+    
+    // Set default level bounds (screen size)
+    player.setLevelBounds(CANVAS_WIDTH, CANVAS_HEIGHT);
     
     // Create platforms for the level
     platforms = [
