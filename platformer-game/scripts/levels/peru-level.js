@@ -347,9 +347,6 @@ class PeruLevel {
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(camera.x - 100, camera.y - 100, camera.width + 200, camera.height + 200);
     
-    console.log(`Drawing tiles from (${clampedStartCol},${clampedStartRow}) to (${clampedEndCol},${clampedEndRow})`);
-    let tilesDrawn = 0;
-    
     // Draw visible tiles
     let tilesDrawn = 0;
     for (let row = clampedStartRow; row < clampedEndRow; row++) {
