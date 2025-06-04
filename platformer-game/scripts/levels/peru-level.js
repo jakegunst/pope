@@ -306,7 +306,8 @@ class PeruLevel {
             
           // Player start position
           case 'X':
-            this.startPosition = { x: x + this.tileSize/2, y: y };
+            this.startPosition = { x: x + this.tileSize/2, y: y - this.tileSize };
+            console.log(`Found player start at: ${this.startPosition.x}, ${this.startPosition.y} (row ${row}, col ${col})`);
             // Also place a platform under the start position
             this.platforms.push({
               x: x,
