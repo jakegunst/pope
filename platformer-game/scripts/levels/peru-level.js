@@ -217,6 +217,7 @@ class PeruLevel {
     let enemyCount = 0;
     let collectibleCount = 0;
     let platformCount = 0;
+    let foundStart = false;  // Track if we've found the start position
     
     // Convert the character map into game objects
     for (let row = 0; row < this.mapData.length; row++) {
@@ -306,8 +307,11 @@ class PeruLevel {
             
           // Player start position
           case 'X':
-            this.startPosition = { x: x + this.tileSize/2, y: y - this.tileSize };
-            console.log(`Found player start at: ${this.startPosition.x}, ${this.startPosition.y} (row ${row}, col ${col})`);
+            if (!foundStart) {
+              this.startPosition = { x: x + this.tileSize/2, y: y - this.tileSize };
+              console.log(`Found player start at: ${this.startPosition.x}, ${this.startPosition.y} (row ${row}, col ${col})`);
+              foundStart = true;
+            }
             // Also place a platform under the start position
             this.platforms.push({
               x: x,
@@ -377,16 +381,19 @@ class PeruLevel {
           case 'B': // Brown ground
             ctx.fillStyle = '#654321';
             ctx.fillRect(x, y, this.tileSize, this.tileSize);
+            tilesDrawn++;
             break;
             
           case 'T': // Stone/tile
             ctx.fillStyle = '#888';
             ctx.fillRect(x, y, this.tileSize, this.tileSize);
+            tilesDrawn++;
             break;
             
           case 'P': // Platform
             ctx.fillStyle = '#8B4513';
             ctx.fillRect(x, y, this.tileSize, this.tileSize);
+            tilesDrawn++;
             break;
             
           case 'K': // Spike hazard
