@@ -232,6 +232,15 @@ class PeruLevel {
         switch(char) {
           // Solid ground platforms
           case 'G':
+            // Test with simple object for G tiles
+            this.platforms.push({
+              x: x,
+              y: y,
+              width: this.tileSize,
+              height: this.tileSize
+            });
+            platformCount++;
+            break;
           case 'B':
           case 'T':
           case 'P':
@@ -342,6 +351,7 @@ class PeruLevel {
     let tilesDrawn = 0;
     
     // Draw visible tiles
+    let tilesDrawn = 0;
     for (let row = clampedStartRow; row < clampedEndRow; row++) {
       for (let col = clampedStartCol; col < clampedEndCol; col++) {
         const tile = this.tiles[row]?.[col];
@@ -349,6 +359,11 @@ class PeruLevel {
         
         const x = col * this.tileSize;
         const y = row * this.tileSize;
+        
+        // DEBUG: Log the first few tiles being drawn
+        if (tilesDrawn < 5) {
+          console.log(`Drawing tile '${tile}' at (${x}, ${y}) with color:`, ctx.fillStyle);
+        }
         
         switch(tile) {
           case 'G': // Grass/ground
@@ -421,6 +436,11 @@ class PeruLevel {
     this.movingPlatforms.forEach(platform => {
       platform.draw(ctx);
     });
+    
+    // DEBUG: Draw a test rectangle to verify drawing works
+    ctx.fillStyle = '#FF0000';
+    ctx.fillRect(100, 100, 50, 50);
+    console.log(`Drew ${tilesDrawn} tiles this frame`);
   }
 }
 
