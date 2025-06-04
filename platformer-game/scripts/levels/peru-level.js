@@ -18,7 +18,7 @@ class PeruLevel {
     this.platforms = [];
     this.movingPlatforms = [];
     this.tiles = [];
-    this.startPosition = { x: 64, y: 5600 }; // Start near bottom left
+    this.startPosition = { x: 100, y: 100 }; // Temporary position until we find 'X'
     
     // The level map data
     this.mapData = [
@@ -347,6 +347,10 @@ class PeruLevel {
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(camera.x - 100, camera.y - 100, camera.width + 200, camera.height + 200);
     
+    // Debug camera and player position
+    console.log(`Camera: (${camera.x}, ${camera.y}), Player: (${this.game.player.x}, ${this.game.player.y})`);
+    console.log(`Checking tiles from (${clampedStartCol},${clampedStartRow}) to (${clampedEndCol},${clampedEndRow})`);
+    
     // Draw visible tiles
     let tilesDrawn = 0;
     for (let row = clampedStartRow; row < clampedEndRow; row++) {
@@ -436,7 +440,7 @@ class PeruLevel {
     
     // DEBUG: Draw a test rectangle to verify drawing works
     ctx.fillStyle = '#FF0000';
-    ctx.fillRect(100, 100, 50, 50);
+    ctx.fillRect(camera.x + 100, camera.y + 100, 50, 50);
     console.log(`Drew ${tilesDrawn} tiles this frame`);
   }
 }
