@@ -368,31 +368,39 @@ class PeruLevel {
         
         // DEBUG: Log the first few tiles being drawn
         if (tilesDrawn < 5) {
-          console.log(`Drawing tile '${tile}' at (${x}, ${y}) with color:`, ctx.fillStyle);
+          console.log(`Drawing tile '${tile}' at (${x}, ${y})`);
         }
         
         switch(tile) {
           case 'G': // Grass/ground
-            ctx.fillStyle = '#4a4';
+            ctx.save();
+            ctx.fillStyle = '#44aa44';
             ctx.fillRect(x, y, this.tileSize, this.tileSize);
+            ctx.restore();
             tilesDrawn++;
             break;
             
           case 'B': // Brown ground
+            ctx.save();
             ctx.fillStyle = '#654321';
             ctx.fillRect(x, y, this.tileSize, this.tileSize);
+            ctx.restore();
             tilesDrawn++;
             break;
             
           case 'T': // Stone/tile
-            ctx.fillStyle = '#888';
+            ctx.save();
+            ctx.fillStyle = '#888888';
             ctx.fillRect(x, y, this.tileSize, this.tileSize);
+            ctx.restore();
             tilesDrawn++;
             break;
             
           case 'P': // Platform
+            ctx.save();
             ctx.fillStyle = '#8B4513';
             ctx.fillRect(x, y, this.tileSize, this.tileSize);
+            ctx.restore();
             tilesDrawn++;
             break;
             
