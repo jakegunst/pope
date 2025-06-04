@@ -1,18 +1,18 @@
-// Updated game.js with integrated enemy system and Peru level support
+// Updated game.js with integrated enemy system
 import * as Utils from './utils.js';
 import { keys } from './input.js';
 
 // Import game objects and levels
 import { Bouncer } from '../objects/bouncer.js';
+import { EnemyManager } from '../objects/EnemyManager.js';
 import { demoLevel } from '../levels/demo-level.js';
 import { PeruLevel } from '../levels/peru-level.js';
 import { Player } from '../objects/player.js';
 import { Enemy } from '../objects/Enemy.js';
-import { EnemyManager } from '../objects/EnemyManager.js';
 import { Platform } from '../objects/platform.js';
-import { MovingPlatform } from '../objects/MovingPlatform.js';
-import { CollectibleManager } from '../objects/CollectibleManager.js';
-import { EffectManager } from '../objects/EffectManager.js';
+import { tileParser } from '../objects/TileParser.js';
+
+// Your existing game code follows...
 
 // Game constants
 const CANVAS_WIDTH = 800;
@@ -23,8 +23,6 @@ const FRICTION = 0.8;
 // Game variables
 let canvas, ctx;
 let gameRunning = false;
-let gameOver = false;
-let isPaused = false;
 let score = 0;
 let lives = 3;
 
@@ -33,8 +31,6 @@ let player;
 let platforms = [];
 let bouncers = []; // Array for bouncers
 let enemyManager; // Enemy manager instance
-let collectibleManager; // Collectible manager instance
-let effectManager; // Effect manager instance
 let camera = { 
     x: 0, 
     y: 0, 
@@ -48,28 +44,6 @@ let camera = {
 let currentLevel = null;
 let useCustomLevel = false; // Set to true to use the demo level
 
-// Create game object that will be passed to levels
-const game = {
-    get enemyManager() { return enemyManager; },
-    get collectibleManager() { return collectibleManager; },
-    get effectManager() { return effectManager; },
-    get player() { return player; },
-    get score() { return score; },
-    set score(value) { score = value; },
-    get camera() { return camera; },
-    
-    // Add score method
-    addScore(points) {
-        score += points;
-    },
-    
-    // Add other game methods that collectibles might need
-    playSound(soundName) {
-        // Placeholder for sound effects
-        console.log(`Playing sound: ${soundName}`);
-    }
-};
-
 // Initialize the game
 function init() {
     console.log("Game initializing");
@@ -80,11 +54,6 @@ function init() {
     canvas.height = CANVAS_HEIGHT;
     ctx = canvas.getContext('2d');
     
-    // Initialize managers BEFORE anything else
-    enemyManager = new EnemyManager();
-    collectibleManager = new CollectibleManager();
-    effectManager = new EffectManager();
-    
     // Set up input - using our local implementation
     setupInputListeners();
     
@@ -93,6 +62,9 @@ function init() {
     
     // Hide game UI initially
     document.getElementById('game-ui').style.display = 'none';
+    
+    // Initialize enemy manager
+    enemyManager = new EnemyManager();
     
     // Add level select UI after DOM is ready
     setTimeout(() => {
@@ -175,46 +147,6 @@ function startGame() {
     requestAnimationFrame(gameLoop);
 }
 
-// Load a tile-based level (like Peru)
-function loadTileBasedLevel(LevelClass) {
-    // Clear existing objects
-    enemyManager.clearEnemies();
-    collectibleManager.clearCollectibles();  // Use the correct method name
-    effectManager.clear();
-    platforms = [];
-    bouncers = [];
-    
-    // Create the level instance
-    currentLevel = new LevelClass(game);
-    
-    // Initialize player at level's starting position
-    const startPos = currentLevel.startPosition || { x: 100, y: 300 };
-    player = new Player(startPos.x, startPos.y);
-    
-    // Use the level's platforms
-    platforms = currentLevel.platforms || [];
-    
-    // Reset camera for large levels
-    camera.x = 0;
-    camera.y = 0;
-    camera.prevX = 0;
-    camera.prevY = 0;
-    
-    // Set camera bounds based on level size
-    if (currentLevel.pixelWidth) {
-        camera.maxX = Math.max(0, currentLevel.pixelWidth - CANVAS_WIDTH);
-    }
-    if (currentLevel.pixelHeight) {
-        camera.maxY = Math.max(0, currentLevel.pixelHeight - CANVAS_HEIGHT);
-    }
-    
-    console.log(`Loaded ${currentLevel.name} level`);
-    console.log(`Level size: ${currentLevel.pixelWidth}x${currentLevel.pixelHeight}`);
-    console.log(`Camera bounds: maxX=${camera.maxX}, maxY=${camera.maxY}`);
-    console.log(`Enemies: ${enemyManager.getEnemyCount()}`);
-    console.log(`Collectibles: ${collectibleManager.collectibles.length}`);
-}
-
 // Load a level from data
 function loadLevel(levelData) {
     currentLevel = levelData;
@@ -282,11 +214,104 @@ function loadLevel(levelData) {
     document.getElementById('level-name').textContent = levelData.name || '';
 }
 
+// Load a tile-based level (like Peru)
+function loadTileBasedLevel(levelData) {
+    console.log("Loading tile-based level:", levelData.name);
+    
+    // Parse the tile-based level
+    const parsed = tileParser.parseLevel(levelData);
+    
+    // Set current level with proper dimensions
+    currentLevel = {
+        name: parsed.name,
+        width: parsed.width,
+        height: parsed.height
+    };
+    
+    // Initialize player at parsed starting position
+    player = new Player(parsed.playerStart.x, parsed.playerStart.y);
+    console.log("Player starting at:", parsed.playerStart.x, parsed.playerStart.y);
+    
+    // Load platforms from parsed data
+    platforms = [];
+    if (parsed.platforms) {
+        parsed.platforms.forEach(platformData => {
+            const platform = new Platform(
+                platformData.x,
+                platformData.y,
+                platformData.width,
+                platformData.height,
+                platformData.type || 'platform',
+                platformData.options || {}
+            );
+            // Set the color from the parsed data
+            if (platformData.color) {
+                platform.color = platformData.color;
+            }
+            platforms.push(platform);
+        });
+    }
+    console.log("Loaded", platforms.length, "platforms");
+    
+    // Load collectibles (if you have a collectible system)
+    if (parsed.collectibles) {
+        console.log("Found", parsed.collectibles.length, "collectibles");
+        // TODO: Implement collectible loading
+    }
+    
+    // Load hazards (if you have a hazard system)
+    if (parsed.hazards) {
+        console.log("Found", parsed.hazards.length, "hazards");
+        // TODO: Implement hazard loading
+    }
+    
+    // Clear and reload enemies
+    enemyManager.clearEnemies();
+    
+    // Parse enemies from the tile data
+    const enemyData = [];
+    for (let y = 0; y < levelData.data.length; y++) {
+        const row = levelData.data[y];
+        for (let x = 0; x < row.length; x++) {
+            // Check for WALKER
+            if (row.substr(x, 6) === 'WALKER') {
+                enemyData.push({
+                    type: 'walker',
+                    x: x * levelData.tileSize,
+                    y: y * levelData.tileSize - 20 // Adjust Y position to be above the ground
+                });
+                x += 5; // Skip ahead
+            }
+            // Check for FLYER
+            else if (row.substr(x, 5) === 'FLYER') {
+                enemyData.push({
+                    type: 'flyer',
+                    x: x * levelData.tileSize,
+                    y: y * levelData.tileSize
+                });
+                x += 4; // Skip ahead
+            }
+        }
+    }
+    
+    // Create enemies
+    enemyData.forEach(enemy => {
+        enemyManager.createEnemy(enemy.type, enemy.x, enemy.y);
+    });
+    console.log("Created", enemyData.length, "enemies");
+    
+    // Reset camera
+    camera.x = 0;
+    camera.y = 0;
+    camera.prevX = 0;
+    camera.prevY = 0;
+    
+    // Update UI with level name
+    document.getElementById('level-name').textContent = levelData.name || '';
+}
+
 // Create the default level
 function loadDefaultLevel() {
-    // Clear any existing level
-    currentLevel = null;
-    
     // Initialize player
     player = new Player(100, 300);
     
@@ -369,23 +394,11 @@ function loadDefaultLevel() {
     enemyManager.createEnemy('flyer', 300, 200);
     enemyManager.createEnemy('flipper', 600, 400);
     
-    // Add some collectibles to the default level
-    collectibleManager.clearCollectibles();
-    collectibleManager.createCollectible('coin', 150, 420);
-    collectibleManager.createCollectible('coin', 250, 320);
-    collectibleManager.createCollectible('coin', 350, 220);
-    collectibleManager.createCollectible('coin', 450, 420);
-    collectibleManager.createCollectible('coin', 550, 320);
-    collectibleManager.createCollectible('bigcoin', 400, 120);
-    collectibleManager.createCollectible('gem', 650, 120);
-    
     // Reset camera
     camera.x = 0;
     camera.y = 0;
     camera.prevX = 0;
     camera.prevY = 0;
-    camera.maxX = 0;
-    camera.maxY = 0;
     
     // Clear level name
     document.getElementById('level-name').textContent = '';
@@ -397,48 +410,20 @@ function updateCamera() {
     camera.prevX = camera.x;
     camera.prevY = camera.y;
     
-    // For tile-based levels with pixelWidth/pixelHeight
-    if (currentLevel && currentLevel.pixelWidth) {
-        // Center camera on player horizontally
-        const targetX = player.x - CANVAS_WIDTH / 2;
-        
-        // Smooth camera movement (optional)
-        // camera.x += (targetX - camera.x) * 0.1;
-        
-        // Direct camera follow
-        camera.x = targetX;
-        
-        // Clamp camera to level bounds
-        camera.x = Math.max(0, Math.min(camera.x, currentLevel.pixelWidth - CANVAS_WIDTH));
-        
-        // Handle vertical camera if level is taller than screen
-        if (currentLevel.pixelHeight > CANVAS_HEIGHT) {
-            const targetY = player.y - CANVAS_HEIGHT / 2;
-            camera.y = Math.max(0, Math.min(targetY, currentLevel.pixelHeight - CANVAS_HEIGHT));
-        }
-    }
-    // For data-based levels with width property
-    else if (currentLevel && currentLevel.width && currentLevel.width > CANVAS_WIDTH) {
-        // Center camera on player
-        const targetX = player.x - CANVAS_WIDTH / 2;
-        
-        // Clamp camera to level bounds
-        camera.x = Math.max(0, Math.min(targetX, currentLevel.width - CANVAS_WIDTH));
-    }
-}
-
-// Main game loop
-function gameLoop(deltaTime) {
-    if (!gameRunning || gameOver || isPaused) {
-        if (gameRunning) {
-            requestAnimationFrame(gameLoop);
-        }
+    // Only update camera for custom levels that are wider than the screen
+    if (!currentLevel || !currentLevel.width || currentLevel.width <= CANVAS_WIDTH) {
         return;
     }
     
-    // Calculate actual deltaTime (capped at 16ms to prevent huge jumps)
-    const cappedDeltaTime = Math.min(deltaTime || 16, 16);
+    // Center camera on player
+    const targetX = player.x - CANVAS_WIDTH / 2;
     
+    // Clamp camera to level bounds
+    camera.x = Math.max(0, Math.min(targetX, currentLevel.width - CANVAS_WIDTH));
+}
+
+// Main game loop
+function gameLoop() {
     // Get current time for animations and cooldowns
     const currentTime = performance.now();
     
@@ -452,14 +437,9 @@ function gameLoop(deltaTime) {
     // Update camera to follow player
     updateCamera();
     
-    // Update tile-based level if it has an update method
-    if (currentLevel && currentLevel.update) {
-        currentLevel.update(cappedDeltaTime);
-    }
-    
     // Update all platforms (specifically moving ones)
     platforms.forEach(platform => {
-        if (platform.isMoving || platform.update) {
+        if (platform.isMoving) {
             platform.update();
         }
     });
@@ -469,10 +449,8 @@ function gameLoop(deltaTime) {
         bouncer.update(currentTime);
     });
     
-    // Update managers
-    enemyManager.update(platforms, player);  // Enemy manager doesn't use deltaTime
-    collectibleManager.update(cappedDeltaTime, player, game);  // Pass game object
-    effectManager.update(cappedDeltaTime);
+    // Update enemy logic - these updates happen in world space, before any camera translation
+    enemyManager.update(platforms, player);
     
     // Update player with controls
     if (player) {
@@ -497,23 +475,16 @@ function gameLoop(deltaTime) {
     // Apply camera offset
     ctx.translate(-camera.x, -camera.y);
     
-    // Draw level background/tiles if it has a draw method
-    if (currentLevel && currentLevel.draw) {
-        currentLevel.draw(ctx, camera);
-    }
-    
-    // Draw platforms (for non-tile-based levels)
-    if (!currentLevel || !currentLevel.draw) {
-        platforms.forEach(platform => {
-            // Only draw platforms if they're visible in the camera view
-            if (platform.x + platform.width > camera.x && 
-                platform.x < camera.x + CANVAS_WIDTH &&
-                platform.y + platform.height > camera.y &&
-                platform.y < camera.y + CANVAS_HEIGHT) {
-                platform.draw(ctx);
-            }
-        });
-    }
+    // Draw platforms
+    platforms.forEach(platform => {
+        // Only draw platforms if they're visible in the camera view
+        if (platform.x + platform.width > camera.x && 
+            platform.x < camera.x + CANVAS_WIDTH &&
+            platform.y + platform.height > camera.y &&
+            platform.y < camera.y + CANVAS_HEIGHT) {
+            platform.draw(ctx);
+        }
+    });
     
     // Draw bouncers
     bouncers.forEach(bouncer => {
@@ -526,19 +497,13 @@ function gameLoop(deltaTime) {
         }
     });
     
-    // Draw collectibles
-    collectibleManager.draw(ctx, camera);
-    
-    // Draw enemies
+    // Draw enemies - This now happens inside the camera transformation context
     enemyManager.draw(ctx, camera);
     
     // Draw player
     if (player) {
         player.draw(ctx);
     }
-    
-    // Draw effects on top
-    effectManager.draw(ctx);
     
     // Restore context after camera transformation
     ctx.restore();
@@ -597,29 +562,30 @@ window.addEventListener('keydown', (e) => {
                     loadDefaultLevel();
                 }
                 break;
-            
-            case 'p': // Load Peru level
+                
+            case 'p': // Peru level
                 loadTileBasedLevel(PeruLevel);
+                console.log("Loading Peru level");
                 break;
                 
             case '1': // Jungle Temple
-                // loadLevel(jungleTempleLevel);
-                console.log("Jungle Temple level not yet implemented");
+                loadLevel(jungleTempleLevel);
+                console.log("Loading Jungle Temple level");
                 break;
                 
             case '2': // Chicago Streets
-                // loadLevel(chicagoStreetLevel);
-                console.log("Chicago Streets level not yet implemented");
+                loadLevel(chicagoStreetLevel);
+                console.log("Loading Chicago Streets level");
                 break;
                 
             case '3': // Chicago Neighborhood
-                // loadLevel(chicagoNeighborhoodLevel);
-                console.log("Chicago Neighborhood level not yet implemented");
+                loadLevel(chicagoNeighborhoodLevel);
+                console.log("Loading Chicago Neighborhood level");
                 break;
                 
             case '4': // Vatican Conclave
-                // loadLevel(vaticanConclaveLevel);
-                console.log("Vatican Conclave level not yet implemented");
+                loadLevel(vaticanConclaveLevel);
+                console.log("Loading Vatican Conclave level");
                 break;
                 
             case '0': // Return to default level
@@ -634,4 +600,4 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('load', init);
 
 // Export the constants if needed elsewhere
-export { CANVAS_WIDTH, CANVAS_HEIGHT, GRAVITY, FRICTION, game };
+export { CANVAS_WIDTH, CANVAS_HEIGHT, GRAVITY, FRICTION };
