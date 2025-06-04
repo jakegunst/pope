@@ -10,7 +10,6 @@ import { PeruLevel } from '../levels/peru-level.js';
 import { Player } from '../objects/player.js';
 import { Enemy } from '../objects/Enemy.js';
 import { Platform } from '../objects/platform.js';
-import { tileParser } from '../objects/TileParser.js';
 
 // Your existing game code follows...
 
@@ -214,91 +213,94 @@ function loadLevel(levelData) {
     document.getElementById('level-name').textContent = levelData.name || '';
 }
 
-// Load a tile-based level (like Peru)
+// Load a tile-based level (like Peru) - SIMPLIFIED VERSION WITHOUT TILEPARSER
 function loadTileBasedLevel(levelData) {
     console.log("Loading tile-based level:", levelData.name);
     
-    // Parse the tile-based level
-    const parsed = tileParser.parseLevel(levelData);
-    
-    // Set current level with proper dimensions
+    // Set current level with proper dimensions in pixels
     currentLevel = {
-        name: parsed.name,
-        width: parsed.width,
-        height: parsed.height
+        name: levelData.name,
+        width: levelData.width * levelData.tileSize,
+        height: levelData.height * levelData.tileSize
     };
     
-    // Initialize player at parsed starting position
-    player = new Player(parsed.playerStart.x, parsed.playerStart.y);
-    console.log("Player starting at:", parsed.playerStart.x, parsed.playerStart.y);
+    // Initialize player at starting position
+    player = new Player(levelData.playerStart.x, levelData.playerStart.y);
+    console.log("Player starting at:", levelData.playerStart.x, levelData.playerStart.y);
     
-    // Load platforms from parsed data
+    // Clear platforms and parse them from tile data
     platforms = [];
-    if (parsed.platforms) {
-        parsed.platforms.forEach(platformData => {
-            const platform = new Platform(
-                platformData.x,
-                platformData.y,
-                platformData.width,
-                platformData.height,
-                platformData.type || 'platform',
-                platformData.options || {}
-            );
-            // Set the color from the parsed data
-            if (platformData.color) {
-                platform.color = platformData.color;
+    const tileSize = levelData.tileSize;
+    
+    // Process each row of the level
+    for (let y = 0; y < levelData.data.length; y++) {
+        const row = levelData.data[y];
+        
+        for (let x = 0; x < row.length; x++) {
+            const tile = row[x];
+            const pixelX = x * tileSize;
+            const pixelY = y * tileSize;
+            
+            // Create platforms based on tile type
+            switch(tile) {
+                case 'G': // Ground
+                    platforms.push(new Platform(pixelX, pixelY, tileSize, tileSize, 'ground'));
+                    break;
+                    
+                case 'P': // Platform
+                    platforms.push(new Platform(pixelX, pixelY, tileSize, tileSize, 'platform'));
+                    break;
+                    
+                case 'T': // One-way platform
+                    platforms.push(new Platform(pixelX, pixelY, tileSize, tileSize, 'one-way'));
+                    break;
+                    
+                case 'S': // Slope
+                    platforms.push(new Platform(pixelX, pixelY, tileSize, tileSize, 'slope', {
+                        angle: 30,
+                        direction: 'right'
+                    }));
+                    break;
+                    
+                case 'M': // Moving platform
+                    platforms.push(new Platform(pixelX, pixelY, tileSize, tileSize, 'moving', {
+                        moveX: 0,
+                        moveY: 100,
+                        moveSpeed: 0.5,
+                        moveTiming: 'sine'
+                    }));
+                    break;
+                    
+                case 'D': // Destructible block
+                    platforms.push(new Platform(pixelX, pixelY, tileSize, tileSize, 'platform'));
+                    break;
             }
-            platforms.push(platform);
-        });
-    }
-    console.log("Loaded", platforms.length, "platforms");
-    
-    // Load collectibles (if you have a collectible system)
-    if (parsed.collectibles) {
-        console.log("Found", parsed.collectibles.length, "collectibles");
-        // TODO: Implement collectible loading
+        }
     }
     
-    // Load hazards (if you have a hazard system)
-    if (parsed.hazards) {
-        console.log("Found", parsed.hazards.length, "hazards");
-        // TODO: Implement hazard loading
-    }
+    console.log("Created", platforms.length, "platforms");
     
     // Clear and reload enemies
     enemyManager.clearEnemies();
     
     // Parse enemies from the tile data
-    const enemyData = [];
     for (let y = 0; y < levelData.data.length; y++) {
         const row = levelData.data[y];
         for (let x = 0; x < row.length; x++) {
             // Check for WALKER
             if (row.substr(x, 6) === 'WALKER') {
-                enemyData.push({
-                    type: 'walker',
-                    x: x * levelData.tileSize,
-                    y: y * levelData.tileSize - 20 // Adjust Y position to be above the ground
-                });
+                enemyManager.createEnemy('walker', x * tileSize, y * tileSize - 20);
                 x += 5; // Skip ahead
             }
             // Check for FLYER
             else if (row.substr(x, 5) === 'FLYER') {
-                enemyData.push({
-                    type: 'flyer',
-                    x: x * levelData.tileSize,
-                    y: y * levelData.tileSize
-                });
+                enemyManager.createEnemy('flyer', x * tileSize, y * tileSize);
                 x += 4; // Skip ahead
             }
         }
     }
     
-    // Create enemies
-    enemyData.forEach(enemy => {
-        enemyManager.createEnemy(enemy.type, enemy.x, enemy.y);
-    });
-    console.log("Created", enemyData.length, "enemies");
+    console.log("Created", enemyManager.getEnemyCount(), "enemies");
     
     // Reset camera
     camera.x = 0;
