@@ -9,7 +9,7 @@ import { TileParser, tileParser } from '../objects/TileParser.js';
 import { CollectibleManager } from '../objects/CollectibleManager.js';
 import { HazardManager } from '../objects/Hazard.js';
 import { PowerupSystem } from '../objects/PowerupSystem.js';
-import demoLevel from '../levels/demo-level.js';
+import { demoLevel } from '../levels/demo-level.js';
 import { PeruLevel } from '../levels/peru-level.js';
 import { Player } from '../objects/player.js';
 import { Platform } from '../objects/platform.js';
