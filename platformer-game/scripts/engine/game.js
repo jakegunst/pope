@@ -11,6 +11,15 @@ import { Enemy } from '../objects/Enemy.js';
 import { Platform } from '../objects/platform.js';
 import { tileParser } from '../objects/TileParser.js';
 
+// Try to import demo level if it exists
+let demoLevel = null;
+try {
+    const module = await import('../levels/demo-level.js');
+    demoLevel = module.demoLevel;
+} catch (e) {
+    console.log("Demo level not found, continuing without it");
+}
+
 // Game constants
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
@@ -91,6 +100,7 @@ function createLevelSelectUI(container) {
     `;
     levelInfo.innerHTML = `
         <strong>Level Select:</strong><br>
+        ${demoLevel ? 'L - Toggle Demo Level<br>' : ''}
         P - Peru Level<br>
         0 - Default Level
     `;
@@ -126,8 +136,13 @@ function startGame() {
     document.getElementById('game-menu').style.display = 'none';
     document.getElementById('game-ui').style.display = 'block';
     
-    // Load default level
-    loadDefaultLevel();
+    if (useCustomLevel && demoLevel) {
+        // Load demo level
+        loadLevel(demoLevel);
+    } else {
+        // Load default level
+        loadDefaultLevel();
+    }
     
     // Start game loop
     gameRunning = true;
@@ -136,12 +151,13 @@ function startGame() {
 
 // Load a level from data
 function loadLevel(levelData) {
-    console.log("Loading level:", levelData.name);
+    console.log("Loading level:", levelData.name || "Unnamed");
     
-    // Check if this is a tile-based level
+    // Check if this is a tile-based level (has data array)
     if (levelData.data && Array.isArray(levelData.data)) {
         console.log("Converting tile-based level to platform format");
         levelData = tileParser.parseLevel(levelData);
+        console.log(`Converted level has ${levelData.platforms.length} platforms`);
     }
     
     currentLevel = levelData;
@@ -149,12 +165,12 @@ function loadLevel(levelData) {
     // Initialize player at level's starting position
     const startPos = levelData.playerStart || { x: 100, y: 300 };
     player = new Player(startPos.x, startPos.y);
-    console.log("Player starting at:", startPos);
+    console.log("Player starting position:", startPos);
     
     // Load platforms
     platforms = [];
     if (levelData.platforms) {
-        console.log(`Loading ${levelData.platforms.length} platforms`);
+        console.log(`Creating ${levelData.platforms.length} platforms`);
         levelData.platforms.forEach((platformData, index) => {
             // Create platform based on type
             const platform = new Platform(
@@ -188,8 +204,12 @@ function loadLevel(levelData) {
     enemyManager.clearEnemies();
     if (levelData.enemies) {
         console.log(`Loading ${levelData.enemies.length} enemies`);
+        // Handle both enemy formats
         levelData.enemies.forEach(enemyData => {
-            enemyManager.createEnemy(enemyData.enemyType || enemyData.type, enemyData.x, enemyData.y);
+            const enemyType = enemyData.enemyType || enemyData.type;
+            if (enemyType) {
+                enemyManager.createEnemy(enemyType, enemyData.x, enemyData.y);
+            }
         });
     }
     
@@ -199,9 +219,18 @@ function loadLevel(levelData) {
     camera.prevX = 0;
     camera.prevY = 0;
     
-    // Set level dimensions for camera bounds
+    // Log level dimensions
     if (levelData.width && levelData.height) {
         console.log(`Level dimensions: ${levelData.width}x${levelData.height}`);
+    }
+    
+    // Handle special level features
+    if (levelData.powerups) {
+        console.log("Level has special powerups:", levelData.powerups);
+    }
+    
+    if (levelData.theme) {
+        console.log("Level theme:", levelData.theme);
     }
     
     // Update UI with level name
@@ -212,7 +241,7 @@ function loadLevel(levelData) {
 function loadDefaultLevel() {
     console.log("Loading default level");
     
-    // Reset current level
+    // Set current level info
     currentLevel = {
         name: 'Default Level',
         width: CANVAS_WIDTH,
@@ -317,8 +346,8 @@ function updateCamera() {
     camera.prevX = camera.x;
     camera.prevY = camera.y;
     
-    // Only update camera for custom levels that are wider than the screen
-    if (!currentLevel || !currentLevel.width || currentLevel.width <= CANVAS_WIDTH) {
+    // Only update camera for custom levels that are wider or taller than the screen
+    if (!currentLevel || (!currentLevel.width && !currentLevel.height)) {
         return;
     }
     
@@ -326,14 +355,20 @@ function updateCamera() {
     const targetX = player.x - CANVAS_WIDTH / 2;
     const targetY = player.y - CANVAS_HEIGHT / 2;
     
-    // Smooth camera movement
+    // Apply smoothing for smoother camera movement
     const smoothing = 0.1;
-    camera.x += (targetX - camera.x) * smoothing;
-    camera.y += (targetY - camera.y) * smoothing;
     
-    // Clamp camera to level bounds
-    camera.x = Math.max(0, Math.min(camera.x, currentLevel.width - CANVAS_WIDTH));
-    camera.y = Math.max(0, Math.min(camera.y, currentLevel.height - CANVAS_HEIGHT));
+    if (currentLevel.width > CANVAS_WIDTH) {
+        camera.x += (targetX - camera.x) * smoothing;
+        // Clamp camera to level bounds
+        camera.x = Math.max(0, Math.min(camera.x, currentLevel.width - CANVAS_WIDTH));
+    }
+    
+    if (currentLevel.height > CANVAS_HEIGHT) {
+        camera.y += (targetY - camera.y) * smoothing;
+        // Clamp camera to level bounds
+        camera.y = Math.max(0, Math.min(camera.y, currentLevel.height - CANVAS_HEIGHT));
+    }
 }
 
 // Main game loop
@@ -390,9 +425,9 @@ function gameLoop() {
     ctx.translate(-camera.x, -camera.y);
     
     // Draw level bounds (for debugging large levels)
-    if (currentLevel && currentLevel.width > CANVAS_WIDTH) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.strokeRect(0, 0, currentLevel.width, currentLevel.height);
+    if (currentLevel && (currentLevel.width > CANVAS_WIDTH || currentLevel.height > CANVAS_HEIGHT)) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.strokeRect(0, 0, currentLevel.width || CANVAS_WIDTH, currentLevel.height || CANVAS_HEIGHT);
     }
     
     // Draw platforms
@@ -460,7 +495,7 @@ function updateUI() {
     
     // Debug info - shows useful stats at bottom of screen
     if (player) {
-        const debugInfo = `Position: ${Math.round(player.x)}, ${Math.round(player.y)} | Velocity: ${player.velocityX.toFixed(2)}, ${player.velocityY.toFixed(2)} | Grounded: ${player.isGrounded} | Camera: ${Math.round(camera.x)}, ${Math.round(camera.y)}`;
+        const debugInfo = `Position: ${Math.round(player.x)}, ${Math.round(player.y)} | Velocity: ${player.velocityX.toFixed(2)}, ${player.velocityY.toFixed(2)} | Grounded: ${player.isGrounded} | Camera: ${Math.round(camera.x)}, ${Math.round(camera.y)} | Level: ${currentLevel?.width || 'N/A'}x${currentLevel?.height || 'N/A'}`;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(10, CANVAS_HEIGHT - 30, CANVAS_WIDTH - 20, 20);
         ctx.fillStyle = 'white';
@@ -474,9 +509,20 @@ window.addEventListener('keydown', (e) => {
     // Level switching keys
     if (gameRunning) {
         switch(e.key.toLowerCase()) {
+            case 'l': // Toggle between default and demo level
+                if (demoLevel) {
+                    useCustomLevel = !useCustomLevel;
+                    if (useCustomLevel) {
+                        loadLevel(demoLevel);
+                    } else {
+                        loadDefaultLevel();
+                    }
+                }
+                break;
+            
             case 'p': // Peru level
                 loadLevel(PeruLevel);
-                console.log("Loading Peru level");
+                console.log("Loading Peru level (tile-based)");
                 break;
                 
             case '0': // Return to default level
