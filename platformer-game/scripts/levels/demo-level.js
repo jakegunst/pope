@@ -1,5 +1,5 @@
 // demo-level.js - A demo level featuring all enemy types
-export default {
+export const demoLevel = {
   name: "Enemy Showcase",
   width: 3500,
   height: 600,
